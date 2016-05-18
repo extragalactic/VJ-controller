@@ -1,0 +1,6 @@
+node_modules/
+.DS_Store
+.tmp
+.git
+sigma-sketcher.git
+npm-debug.log
