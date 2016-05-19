@@ -7,7 +7,9 @@
 angular.module('myApp').controller('ControlsController', ['$scope', '$window', '$http', 'socket', 'appVars', 'AssetLibrary', function ($scope, $window, $http, socket, appVars, AssetLibrary) {
   "use strict";
 
-  var faderSpeedArray = [1.0001, 0.5, 0.25, 0.125, 0.0625, 0.0312, 0.0156];
+//  var faderSpeedArray = [8.0001, 4.0001, 2.0001, 1.0001, 0.5, 0.25, 0.125, 0.0625, 0.0312, 0.0156];
+  var faderSpeedArray = [0.0001220, 0.0002441, 0.0007324, 0.001706, 0.003656, 0.0007556, 0.015356];
+
   var faderStylePresets = [
     [0.0001, 0.0001, 1.0001, 1.0001, 0.0001, 0.0001, 1.0001, 1.0001, 0.0001],
     [0.0001, 0.2, 0.4, 0.7, 1.0001, 0.7, 0.4, 0.2, 0.0001],
@@ -15,8 +17,9 @@ angular.module('myApp').controller('ControlsController', ['$scope', '$window', '
     [0.5, 0.5, 1.0001, 0.5, 0.5, 0.5, 0.0001, 0.5, 0.5],
     [0.0001, 0.0001, 0.0001, 0.0001, 1.0001, 0.0001, 1.0001, 0.0001, 0.0001],
     [1.0001, 0.0001, 1.0001, 0.0001, 1.0001, 0.0001, 1.0001, 0.0001, 1.0001],
-    [1.0001, 0.0001, 0.2, 0.0001, 0.0001, 0.0001, 0.0001, 0.0001, 1.0001],
-    [0.0001, 0.5, 0.8, 0.2, 1.0001, 0.3, 0.85, 0.3, 0.0001]
+    [1.0001, 0.0001, 0.4, 0.0001, 0.0001, 0.0001, 0.0001, 0.0001, 1.0001],
+    [0.0001, 0.5, 0.8, 0.2, 1.0001, 0.3, 0.85, 0.3, 0.0001],
+    [0.0001, 0.0001, 1.0001, 1.0001, 0.0001, 0.0001, 1.0001, 1.0001, 0.0001]
   ];
 
   var numSteps = faderStylePresets[0].length; // number of IR_OSC steps + 1
@@ -29,6 +32,15 @@ angular.module('myApp').controller('ControlsController', ['$scope', '$window', '
       initControls();
       clearTimeout(NexusUITimeout);
     }
+  }
+
+  function microSliderClickHandler(data) {
+    return function () {
+      console.log(data);
+    };
+  }
+  function microSliderClickHandler2() {
+    //console.log(data);
   }
 
   function initControls () {
@@ -49,16 +61,20 @@ angular.module('myApp').controller('ControlsController', ['$scope', '$window', '
     var firstColorDarkComp = "#2e4e1c";
 
     $window.nx.colorize(firstColorLight);
-    $window.nx.colorize("border", "#efefef");
+    $window.nx.colorize("border", firstColorMediumComp);
     $window.nx.colorize("fill", firstColorDark);
     $window.nx.colorize("black", "#ffffff");
 
-    // on/off toggle button
-    $window.nx.add("toggle", {parent:"controlOnOff1"});
-    $window.nx.widgets.toggle1.colors = {accent: firstColorLightComp, fill: firstColorDarkComp};
-    $window.nx.widgets.toggle1.init();
+    var widget;
+    var selectedStylePreset = 0;
 
-    $window.nx.widgets.toggle1.on('*', function(data) {
+    // on/off toggle button
+    $window.nx.add("toggle", {name: "faderToggle", parent:"controlOnOff1"});
+    widget = $window.nx.widgets.faderToggle;
+    widget.colors = {accent: firstColorLightComp, fill: "#440000"};
+    widget.init();
+
+    widget.on('*', function(data) {
       var msgOSC_dir = '/composition/video/effect1/param1/direction';
       var msgOSC_faderpos = '/composition/cross/values';
       var msgOSC_bypass = '/composition/video/effect1/bypassed';
@@ -77,65 +93,101 @@ angular.module('myApp').controller('ControlsController', ['$scope', '$window', '
       }
     });
 
+
+
+    // microslider array
+    for(var i=0; i<faderStylePresets.length; i++) {
+      var sliderName = "microslider"+(i+1);
+      $window.nx.add("multislider", {name: sliderName, parent:"controlsLine0"});
+      widget = $window.nx.widgets[sliderName];
+      widget.sliders = faderStylePresets.length;
+      widget.colors = {fill: thirdColorDark, accent: thirdColorMedium};
+      widget.init();
+      for(var j=0; j<faderStylePresets[i].length; j++) {
+        widget.setSliderValue(j, faderStylePresets[i][j]);
+      }
+      var id = $window.document.getElementById(sliderName);
+      id.className = "microsliders";
+      //widget.on('*', microSliderClickHandler(data));
+      widget.click = microSliderClickHandler2();
+    }
+
     // beat style preset buttons
-    $window.nx.add("tabs", {parent:"controlTabs1"});
-    $window.nx.widgets.tabs1.options = ["1", "2", "3", "4", "5", "6", "7", "8"];
-    $window.nx.widgets.tabs1.init();
-    $window.nx.widgets.tabs1.on('*', function(data) {
+    $window.nx.add("tabs", {name: "beatStyleTabs", parent:"controlTabs1"});
+    widget = $window.nx.widgets.beatStyleTabs;
+    widget.options = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
+    widget.init();
+    widget.on('*', function(data) {
+      selectedStylePreset = data.index;
       for(var i=0; i<numSteps; i++) {
         var msgOSC = '/composition/video/effect1/param' + (i+3) + '/values';
         var val = faderStylePresets[data.index][i];
         socket.emit('messageOSC', msgOSC, val);
-        $window.nx.widgets.multislider1.setSliderValue(i, val);
-        console.log(msgOSC);
+        $window.nx.widgets.styleModSliders.setSliderValue(i, val);
       }
     });
 
     // style modification sliders
-    $window.nx.add("multislider", {parent:"controlsLine2"});
-    $window.nx.widgets.multislider1.sliders = numSteps;
-    $window.nx.widgets.multislider1.init();
-    $window.nx.widgets.multislider1.on('*', function(data) {
+    $window.nx.add("multislider", {name: "styleModSliders", parent:"controlsLine2"});
+    widget = $window.nx.widgets.styleModSliders;
+    widget.sliders = numSteps;
+    widget.init();
+    widget.on('*', function(data) {
       var index = parseInt(Object.keys(data)[0]);
       if(index >= 0 && index < numSteps) {
         var val = data[index];
+        var microsliderName = "microslider"+(selectedStylePreset+1);
+        $window.nx.widgets[microsliderName].setSliderValue(index, val);
+        faderStylePresets[selectedStylePreset][index] = val;
         var msgOSC = '/composition/video/effect1/param' + (index+3) + '/values';
         socket.emit('messageOSC', msgOSC, val);
-        console.log(index, val);
       }
     });
 
     // tempo buttons
-    $window.nx.add("tabs", {parent:"controlTabs2"});
-    $window.nx.widgets.tabs2.options = ["1", "2", "4", "8", "16", "32", "64"];
-    $window.nx.widgets.tabs2.init();
-    $window.nx.widgets.tabs2.on('*', function(data) {
-      var msgOSC = '/composition/video/effect1/param1/speed';
-      var val = faderSpeedArray[data.index]/10*4;
+    $window.nx.add("tabs", {name: "tempoTabs", parent:"controlTabs2"});
+    widget = $window.nx.widgets.tempoTabs;
+    widget.options = ["1", "2", "4", "8", "16", "32", "64"];
+    widget.init();
+    widget.on('*', function(data) {
+      //var msgOSC = '/composition/video/effect1/param1/speed';
+      var msgOSC = '/composition/video/effect1/param1/linkmultiplier';
+      //var val = faderSpeedArray[data.index]/10*4;
+      var val = faderSpeedArray[data.index];
       socket.emit('messageOSC', msgOSC, val);
-      console.log(msgOSC);
     });
 
     // basic fader
-    $window.nx.add("slider", {parent:"controlsLine2"});
-    $window.nx.widgets.slider1.on('*', function(data) {
+    $window.nx.add("slider", {name: "faderSlider", parent:"controlsLine2"});
+    widget = $window.nx.widgets.faderSlider;
+    widget.on('*', function(data) {
       var msgOSC = '/composition/cross/values';
       var val = data.value;
       socket.emit('messageOSC', msgOSC, val);
-      console.log(data);
     });
 
-  }
+    // clip sequencer matrix
+    /*
+    $window.nx.add("matrix", {parent:"controlMatrix"});
+    widget =  $window.nx.widgets.matrix1;
+    widget.col = 16;
+    widget.matrix = [
+  				[1,0,0,0],
+  				[0,0,0,0],
+  				[0,0,0,0],
+  				[0,0,0,0],
+  				[0,0,1,0],
+  				[0,0,0,0],
+  				[0,1,0,0],
+  				[0,0,0,0]
+  			];
+    widget.sequence(180);
+    widget.init();
+*/
+    /*
+    // other widgets I haven't used yet
 
-  // listen for global messages (an example code stub for global messeging)
-  $scope.$on('newSelectedColour', function (event, newColour) {
-
-
-/*
-    $window.nx.add("multislider", {parent:"mainDiv"});
     $window.nx.add("metroball", {parent:"mainDiv"});
-    $window.nx.add("slider", {parent:"mainDiv"});
-    $window.nx.add("slider", {parent:"mainDiv"});
     $window.nx.add("multitouch", {parent:"mainDiv"});
     $window.nx.add("colors", {parent:"mainDiv"});
     $window.nx.add("crossfade", {parent:"mainDiv"});
@@ -144,14 +196,11 @@ angular.module('myApp').controller('ControlsController', ['$scope', '$window', '
     $window.nx.add("mouse", {parent:"mainDiv"});
     $window.nx.add("number", {parent:"mainDiv"});
     $window.nx.add("position", {parent:"mainDiv"});
-    $window.nx.add("number", {parent:"mainDiv"});
     $window.nx.add("range", {parent:"mainDiv"});
     $window.nx.add("select", {parent:"mainDiv"});
-    $window.nx.add("tabs", {parent:"mainDiv"});
-    $window.nx.add("toggle", {parent:"mainDiv"});
+    */
+  }
 
-*/
-  });
 
   // remove socket listeners when leaving page (called automatically)
   $scope.$on('$destroy', function (event) {
@@ -160,13 +209,15 @@ angular.module('myApp').controller('ControlsController', ['$scope', '$window', '
 
   // ---------------------------------------------------
   // listen for OSC socket messages from server
-  socket.on('connect', function () {
-  });
-
   socket.on("messageOSC", function (message) {
     console.log('OSC message received by client: ' + message);
   });
 
+
+  // listen for global messages (an example code stub for global messeging)
+  $scope.$on('newSelectedColour', function (event, newColour) {
+    // sample
+  });
 
   // ---------------------------------------------------
   // listen for messages from view

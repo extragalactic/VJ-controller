@@ -113,6 +113,8 @@ div {
 }
 
 // -------------------------------------------------
+#controlsLine0 {
+}
 #controlsLine1 {
     clear: both;
     float: left;
@@ -124,8 +126,8 @@ div {
 #controlTabs1 {
     float: right;
 }
-#tabs1 {
-    width: 400px;
+#beatStyleTabs {
+    width: 900px;
     height: 50px;
 }
 
@@ -134,26 +136,44 @@ div {
     float: left;
     padding-bottom: 20px;
 }
-#tabs2 {
-    width: 400px;
+#tempoTabs {
+    width: 900px;
     height: 50px;
 }
 
 #controlsLine3 {
-    height: 150px;
+    padding-bottom: 20px;
     clear: both;
     float: left;
 }
-
-#multislider1 {
-    width: 400px;
+#controlMatrix {
+    clear: both;
+    float: left;
+}
+#styleModSliders {
+    width: 700px;
     height: 200px;
     padding-right: 20px;
 }
 
-#slider1 {
+#faderSlider {
     width: 80px;
     height: 200px;
+}
+
+#faderToggle {
+    width: 180px;
+    height: 100px;
+}
+
+#matrix1 {
+    width: 900px;
+    height: 200px;
+}
+.microsliders {
+    padding: 0px 3px;
+    width: 120px;
+    height: 40px;
 }
 
 // -------------------------------------------------
