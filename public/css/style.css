@@ -113,13 +113,14 @@ div label {
   float: left; }
 
 #styleModSliders {
-  width: 700px;
+  width: 800px;
   height: 200px;
   padding-right: 20px; }
 
 #faderSlider {
-  width: 80px;
-  height: 200px; }
+  width: 90px;
+  height: 200px;
+  margin-left: 5px; }
 
 #faderToggle {
   width: 180px;
@@ -159,10 +160,16 @@ div label {
 #sequencerToggle {
   width: 140px;
   height: 100px;
-  padding-bottom: 40px; }
+  padding-bottom: 40px;
+  margin-left: 10px; }
 
 #tempoMultiplierSlider {
   width: 60px;
+  height: 60px;
+  float: left; }
+
+#tempoMultiplierTabs {
+  width: 160px;
   height: 60px;
   float: left; }
 
@@ -170,13 +177,21 @@ div label {
   width: 80px;
   height: 60px;
   float: left;
-  padding-left: 5px; }
+  margin-left: 40px;
+  margin-bottom: 20px; }
 
 #resyncButton {
   width: 140px;
   height: 90px;
   clear: both;
-  padding: 30px; }
+  padding: 30px;
+  margin-left: 10px; }
+
+#bankSelectorTabs {
+  width: 740px;
+  height: 30px;
+  margin-left: 55px;
+  margin-top: 10px; }
 
 .colorPicker {
   float: left;
