@@ -112,10 +112,6 @@ div label {
   clear: both;
   float: left; }
 
-#controlMatrix {
-  clear: both;
-  float: left; }
-
 #styleModSliders {
   width: 700px;
   height: 200px;
@@ -129,14 +125,58 @@ div label {
   width: 180px;
   height: 100px; }
 
-#matrix1 {
-  width: 900px;
-  height: 200px; }
-
 .microsliders {
   padding: 0px 3px;
   width: 120px;
   height: 40px; }
+
+#matrixLayer1, #matrixLayer2, #matrixLayer3 {
+  width: 740px;
+  height: 140px; }
+
+#matrixOptions1, #matrixOptions2, #matrixOptions3 {
+  width: 50px;
+  height: 140px; }
+
+#matrixWrapper {
+  width: 960px;
+  clear: both; }
+
+#optionMatrix {
+  width: 50px;
+  float: left; }
+
+#stepMatrix {
+  width: 740px;
+  float: left;
+  padding-left: 8px; }
+
+#rightControls {
+  width: 160px;
+  padding-left: 15px;
+  float: left; }
+
+#sequencerToggle {
+  width: 140px;
+  height: 100px;
+  padding-bottom: 40px; }
+
+#tempoMultiplierSlider {
+  width: 60px;
+  height: 60px;
+  float: left; }
+
+#sequencerBPM {
+  width: 80px;
+  height: 60px;
+  float: left;
+  padding-left: 5px; }
+
+#resyncButton {
+  width: 140px;
+  height: 90px;
+  clear: both;
+  padding: 30px; }
 
 .colorPicker {
   float: left;

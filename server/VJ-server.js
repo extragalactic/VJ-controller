@@ -88,17 +88,13 @@ function initOSC() {
       }
    };
    console.log('configure OSC socket');
-   console.log(obj.server.port + ', ' + obj.server.host);
-   console.log(obj.client.port + ', ' + obj.client.host);
-
    oscServer = new osc.Server(obj.server.port, obj.server.host);
    oscClient = new osc.Client(obj.client.host, obj.client.port);
-   //  oscClient.send('/status', socket.sessionId + ' connected');
 
    oscServer.on('message', function(msg, rinfo) {
-     var OSCmsg = msg[2][0]; // trim the data out of the message
-     console.log('OSC server received message: ' + OSCmsg);
-     io.emit("messageOSC", OSCmsg);
+     //var OSCmsg = msg[2][0]; // trim the data out of the message
+     console.log('OSC server received message: ' + msg);
+     //io.emit("messageOSC", OSCmsg);
    });
 
 }

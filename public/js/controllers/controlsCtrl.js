@@ -93,8 +93,6 @@ angular.module('myApp').controller('ControlsController', ['$scope', '$window', '
       }
     });
 
-
-
     // microslider array
     for(var i=0; i<faderStylePresets.length; i++) {
       var sliderName = "microslider"+(i+1);
@@ -166,26 +164,8 @@ angular.module('myApp').controller('ControlsController', ['$scope', '$window', '
       socket.emit('messageOSC', msgOSC, val);
     });
 
-    // clip sequencer matrix
     /*
-    $window.nx.add("matrix", {parent:"controlMatrix"});
-    widget =  $window.nx.widgets.matrix1;
-    widget.col = 16;
-    widget.matrix = [
-  				[1,0,0,0],
-  				[0,0,0,0],
-  				[0,0,0,0],
-  				[0,0,0,0],
-  				[0,0,1,0],
-  				[0,0,0,0],
-  				[0,1,0,0],
-  				[0,0,0,0]
-  			];
-    widget.sequence(180);
-    widget.init();
-*/
-    /*
-    // other widgets I haven't used yet
+    // other NexusUI widgets I haven't used yet
 
     $window.nx.add("metroball", {parent:"mainDiv"});
     $window.nx.add("multitouch", {parent:"mainDiv"});
@@ -194,7 +174,6 @@ angular.module('myApp').controller('ControlsController', ['$scope', '$window', '
     $window.nx.add("dial", {parent:"mainDiv"});
     $window.nx.add("joints", {parent:"mainDiv"});
     $window.nx.add("mouse", {parent:"mainDiv"});
-    $window.nx.add("number", {parent:"mainDiv"});
     $window.nx.add("position", {parent:"mainDiv"});
     $window.nx.add("range", {parent:"mainDiv"});
     $window.nx.add("select", {parent:"mainDiv"});

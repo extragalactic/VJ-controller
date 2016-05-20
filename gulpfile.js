@@ -11,6 +11,7 @@ var gulp = require('gulp'),
 var jsSources = [
   'public/js/app.js',
   'public/js/controllers/controlsCtrl.js',
+  'public/js/controllers/sequencerCtrl.js',
   'public/js/controllers/headerCtrl.js',
   'public/js/services/socketFactory.js',
   'public/js/services/assetLibrary.js',

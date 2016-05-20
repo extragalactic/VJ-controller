@@ -34,6 +34,10 @@ var myApp = angular.module('myApp', [
     templateUrl: 'partials/controls.html',
     controller: 'ControlsController'
   }).
+  when('/sequencer', {
+    templateUrl: 'partials/controlsSequencer.html',
+    controller: 'SequencerController'
+  }).
   otherwise({
     redirectTo: '/controls'
   });
