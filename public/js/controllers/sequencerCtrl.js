@@ -21,8 +21,6 @@ angular.module('myApp').controller('SequencerController', ['$scope', '$window', 
     var firstColorLightComp = "#9de86f";
     var firstColorMediumComp = "#62a33c";
     var firstColorDarkComp = "#2e4e1c";
-
-    // for greying out a disabled matrix...
     var colorDisabledDark = "#333333";
 
     $window.nx.colorize(firstColorLight);
@@ -32,10 +30,19 @@ angular.module('myApp').controller('SequencerController', ['$scope', '$window', 
 
     var widget; // resuable widget var
     var bSequencerActive = false;
+    var matrixActiveToggles = [true, true, true];
     var sequencerBPM = 180;
     var clipBankNum = [0,0,0]; // values: 0-2
-    var tempoMultiplier = 1;
+    var tempoMultiplier = 1; // 1, 2, 4 etc.
 
+    // initialize the step sequencer data storage
+    var matrixData = new Array(16);
+    for(var i=0; i<16; i++) {
+      matrixData[i] = new Array(4);
+      for(var j=0; j<4; j++) {
+        matrixData[i][j] = 0;
+      }
+    }
     /*
      The automation assumes the following Resolume layer structure:
 
@@ -56,6 +63,13 @@ angular.module('myApp').controller('SequencerController', ['$scope', '$window', 
     createOptionMatrix (1, {accent: firstColorLightComp, fill: thirdColorMedium});
 
     // create 3 step sequencer matrices (1 for FX, 2 for clips)
+    var interfaceColors = {
+      matrixLayer: [
+        {accent: thirdColorLight, fill: thirdColorDark},
+        {accent: firstColorLight, fill: firstColorDark},
+        {accent: secondColorLight, fill: secondColorDark}
+      ]
+    };
     createStepMatrix (3, {accent: secondColorLight, fill: secondColorDark});
     createStepMatrix (2, {accent: firstColorLight, fill: firstColorDark});
     createStepMatrix (1, {accent: thirdColorLight, fill: thirdColorDark});
@@ -69,24 +83,12 @@ angular.module('myApp').controller('SequencerController', ['$scope', '$window', 
       bSequencerActive = data.value ? true:false;
       if(!bSequencerActive) {
         // clear the FX layer when turning off
-        var layerName = "layer4"; // this is the FX layer
+        var layerName = "layer4"; // this is the FX layer in Resolume
         var msgOSC = '/' + layerName + '/clear';
         socket.emit('messageOSC', msgOSC, 1);
       }
     });
-/*
-    // BPM multiplier slider
-    $window.nx.add("slider", {name: "tempoMultiplierSlider", parent:"rightControls"});
-    widget = $window.nx.widgets.tempoMultiplierSlider;
-    widget.val = 0;
-    widget.init();
-    widget.on('*', function(data) {
-      var tempoMultiplier = 1 + (data.value * 3);
-      $window.nx.widgets.matrixLayer1.sequence(sequencerBPM*tempoMultiplier);
-      $window.nx.widgets.matrixLayer2.sequence(sequencerBPM*tempoMultiplier);
-      $window.nx.widgets.matrixLayer3.sequence(sequencerBPM*tempoMultiplier);
-    });
-*/
+
     // BPM control widget
     $window.nx.add("number", {name: "sequencerBPM", parent:"rightControls"});
     widget = $window.nx.widgets.sequencerBPM;
@@ -108,7 +110,6 @@ angular.module('myApp').controller('SequencerController', ['$scope', '$window', 
     widget.options = ["x1", "x2", "x4", "x8"];
     widget.init();
     widget.on('*', function(data) {
-      console.log(data);
       var tempos = [1,2,4,8];
       tempoMultiplier = tempos[data.index];
       $window.nx.widgets.matrixLayer1.sequence(sequencerBPM*tempoMultiplier);
@@ -126,6 +127,39 @@ angular.module('myApp').controller('SequencerController', ['$scope', '$window', 
       $window.nx.widgets.matrixLayer2.jumpToCol(0);
       $window.nx.widgets.matrixLayer3.jumpToCol(0);
     });
+
+
+    function createMatrixToggle(n) {
+      // matrix on/off toggle button
+      var buttonName = "matrixToggle" + n;
+      $window.nx.add("toggle", {name: buttonName, parent:"rightControls"});
+      widget = $window.nx.widgets[buttonName];
+      widget.init();
+      widget.on('*', function(data) {
+        var bActive = data.value ? true:false;
+        matrixActiveToggles[n-1] = bActive;
+        /*
+        var matrixName = "matrixLayer" + n;
+        widget = $window.nx.widgets[matrixName];
+        if(bActive) {
+          widget.colors = {
+            accent: interfaceColors.matrixLayer[n-1].accent,
+            fill: interfaceColors.matrixLayer[n-1].fill
+          };
+        } else {
+          widget.colors = {
+            accent: firstColorLightComp,
+            fill: colorDisabledDark
+          };
+        }
+        widget.init();
+        */
+      });
+    }
+    createMatrixToggle(3);
+    createMatrixToggle(2);
+    createMatrixToggle(1);
+
 
     // create bank selector tabs
     $window.nx.add("tabs", {name: "bankSelectorTabs", parent:"bottomControls"});
@@ -147,7 +181,9 @@ angular.module('myApp').controller('SequencerController', ['$scope', '$window', 
       widget.sequence(sequencerBPM);
       widget.init();
       widget.on('*', function(data) {
-        if(data.list !== undefined) {
+        //console.log(JSON.stringify(matrixActiveToggles));
+        if(data.list !== undefined && matrixActiveToggles[sequencerNum-1]===true) {
+          // handle the advance of the sequencer bar
           if(!bSequencerActive) return;
           var layerName = "layer" + (sequencerNum + 1);
           for(var i=0; i<data.list.length; i++){
@@ -159,10 +195,15 @@ angular.module('myApp').controller('SequencerController', ['$scope', '$window', 
               }
           }
         } else {
+          // handle a click on a cell
           if(data.level===1) {
             // when a cell is turned on, turn off all other cells in the same vertical 4-cell group (behavior like a radio button)
+            matrixData[data.row][data.col] = 1;
             for(var j=0; j<4; j++) {
-              if(data.row !== j) widget.setCell(data.col, j, 0);
+              if(data.row !== j)  {
+                widget.setCell(data.col, j, 0);
+                matrixData[data.col][j] = 0;
+              }
             }
           }
         }
@@ -191,6 +232,11 @@ angular.module('myApp').controller('SequencerController', ['$scope', '$window', 
     }
   }
 
+  // (this is what Angular normally does)
+  function refreshMatrixView() {
+
+  }
+
   // remove socket listeners when leaving page (called automatically)
   $scope.$on('$destroy', function (event) {
     socket.removeAllListeners();
@@ -203,18 +249,17 @@ ToDo:
 
 GENERAL:
  - fix the broken page switching
+ - research the best practices for Angular variable naming, and fix up the project
 
 FADER:
- - when the fader automater is running, it should also be animating the slider
- - the fader slider should be a horizontal slider, placed at the bottom beside the on/off button (then widen the multislider to fill the width)
- - need to initialize the multislider with start values
- - when selecting a new beat-style tab it should smoothly animate the sliders to their new positions (implement the Robert Penner easing equations)
+ - disable the manual fader when the automater is running
+ - add in Invert and Reverse buttons, place them where the fader currently is, then move the fader to the bottom horizontally
+ - When the fader automater is running, it should also be animating the slider (Note: requires bi-directional OSC from Resolume... which is a separate issue)
 
 SEQUENCER:
- - add enable/disable toggle buttons to turn on/off matrix layers
  - add a clip transition-velocity slider
  - make several matrix banks with pre-loaded automation patterns, and order the patterns left-to-right in order of ascending busy-ness (from chill to intense)
-
+ - improve layout of matrix layer enable/disable toggle buttons
 
 */
 
