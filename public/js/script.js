@@ -24747,6 +24747,8 @@ angular.module('myApp').controller('ControlsController', ['$scope', '$window', '
 // Clip Sequencer Controller
 // ----------------------------------------------------
 
+// Note: This code needs to be seriously refactored and cleaned up...
+
 angular.module('myApp').controller('SequencerController', ['$scope', '$window', '$http', 'socket', 'appVars', 'AssetLibrary', function ($scope, $window, $http, socket, appVars, AssetLibrary) {
   "use strict";
 
@@ -24766,10 +24768,13 @@ angular.module('myApp').controller('SequencerController', ['$scope', '$window', 
     var firstColorLightComp = "#9de86f";
     var firstColorMediumComp = "#62a33c";
     var firstColorDarkComp = "#2e4e1c";
-    var colorDisabledDark = "#333333";
+    var colorGreyDark = "#111111";
+    var colorGreyMedium = "#222222";
+    var colorOffState = "#440000";
 
     $window.nx.colorize(firstColorLight);
-    $window.nx.colorize("border", firstColorMediumComp);
+    $window.nx.colorize("border", colorGreyMedium);
+    $window.nx.colorize("accentborder", firstColorDarkComp);
     $window.nx.colorize("fill", firstColorDark);
     $window.nx.colorize("black", "#ffffff");
 
@@ -24781,13 +24786,12 @@ angular.module('myApp').controller('SequencerController', ['$scope', '$window', 
     var tempoMultiplier = 1; // 1, 2, 4 etc.
 
     // initialize the step sequencer data storage
-    var matrixData = new Array(16);
-    for(var i=0; i<16; i++) {
-      matrixData[i] = new Array(4);
-      for(var j=0; j<4; j++) {
-        matrixData[i][j] = 0;
-      }
-    }
+    var numSequencerBanks = 5;
+    var selectedSequencerBank = 0;
+    var matrixData;
+
+    initMatrixData();
+
     /*
      The automation assumes the following Resolume layer structure:
 
@@ -24819,10 +24823,14 @@ angular.module('myApp').controller('SequencerController', ['$scope', '$window', 
     createStepMatrix (2, {accent: firstColorLight, fill: firstColorDark});
     createStepMatrix (1, {accent: thirdColorLight, fill: thirdColorDark});
 
+    createMatrixToggle(3);
+    createMatrixToggle(2);
+    createMatrixToggle(1);
+
     // sequencer on/off toggle button
     $window.nx.add("toggle", {name: "sequencerToggle", parent:"rightControls"});
     widget = $window.nx.widgets.sequencerToggle;
-    widget.colors = {accent: firstColorLightComp, fill: "#440000"};
+    widget.colors = {accent: firstColorLightComp, fill: colorOffState};
     widget.init();
     widget.on('*', function(data) {
       bSequencerActive = data.value ? true:false;
@@ -24851,7 +24859,6 @@ angular.module('myApp').controller('SequencerController', ['$scope', '$window', 
     // BPM multiplier tabs
     $window.nx.add("tabs", {name: "tempoMultiplierTabs", parent:"rightControls"});
     widget = $window.nx.widgets.tempoMultiplierTabs;
-  //  widget.val = 0;
     widget.options = ["x1", "x2", "x4", "x8"];
     widget.init();
     widget.on('*', function(data) {
@@ -24873,12 +24880,14 @@ angular.module('myApp').controller('SequencerController', ['$scope', '$window', 
       $window.nx.widgets.matrixLayer3.jumpToCol(0);
     });
 
-
+    // toggle each individual matrix (for FX, Layer1 & Layer2)
     function createMatrixToggle(n) {
       // matrix on/off toggle button
       var buttonName = "matrixToggle" + n;
-      $window.nx.add("toggle", {name: buttonName, parent:"rightControls"});
+      $window.nx.add("toggle", {name: buttonName, parent:"matrixToggleControls"});
       widget = $window.nx.widgets[buttonName];
+      widget.colors = {accent: interfaceColors.matrixLayer[n-1].accent, fill: colorOffState, border: colorGreyMedium, black: colorGreyMedium, white: colorGreyMedium};
+      widget.set({value:1});
       widget.init();
       widget.on('*', function(data) {
         var bActive = data.value ? true:false;
@@ -24894,25 +24903,23 @@ angular.module('myApp').controller('SequencerController', ['$scope', '$window', 
         } else {
           widget.colors = {
             accent: firstColorLightComp,
-            fill: colorDisabledDark
+            fill: colorGreyMedium
           };
         }
         widget.init();
         */
       });
     }
-    createMatrixToggle(3);
-    createMatrixToggle(2);
-    createMatrixToggle(1);
 
 
     // create bank selector tabs
     $window.nx.add("tabs", {name: "bankSelectorTabs", parent:"bottomControls"});
     widget = $window.nx.widgets.bankSelectorTabs;
-    widget.options = ["1", "2", "3"];
+    widget.options = ["1", "2", "3", "4", "5"];
     widget.init();
     widget.on('*', function(data) {
-      console.log(data);
+      selectedSequencerBank = data.index;
+      refreshMatrixView();
     });
 
     // create a 16x4 clip sequencer matrix
@@ -24926,7 +24933,6 @@ angular.module('myApp').controller('SequencerController', ['$scope', '$window', 
       widget.sequence(sequencerBPM);
       widget.init();
       widget.on('*', function(data) {
-        //console.log(JSON.stringify(matrixActiveToggles));
         if(data.list !== undefined && matrixActiveToggles[sequencerNum-1]===true) {
           // handle the advance of the sequencer bar
           if(!bSequencerActive) return;
@@ -24943,14 +24949,15 @@ angular.module('myApp').controller('SequencerController', ['$scope', '$window', 
           // handle a click on a cell
           if(data.level===1) {
             // when a cell is turned on, turn off all other cells in the same vertical 4-cell group (behavior like a radio button)
-            matrixData[data.row][data.col] = 1;
+            matrixData[selectedSequencerBank][3-sequencerNum][data.col][data.row] = 1;
             for(var j=0; j<4; j++) {
               if(data.row !== j)  {
                 widget.setCell(data.col, j, 0);
-                matrixData[data.col][j] = 0;
+                matrixData[selectedSequencerBank][3-sequencerNum][data.col][j] = 0;
               }
             }
-          }
+          } else if (data.level===0) {
+            matrixData[selectedSequencerBank][3-sequencerNum][data.col][data.row] = 0;        }
         }
       });
     }
@@ -24975,12 +24982,52 @@ angular.module('myApp').controller('SequencerController', ['$scope', '$window', 
         }
       });
     }
+
+    // redraw the cells on the matrices based on the selected data bank
+    // (...this is what Angular normally does)
+    function refreshMatrixView() {
+      $window.nx.widgets.matrixLayer3.matrix = matrixData[selectedSequencerBank][0];
+      $window.nx.widgets.matrixLayer3.init();
+      $window.nx.widgets.matrixLayer2.matrix = matrixData[selectedSequencerBank][1];
+      $window.nx.widgets.matrixLayer2.init();
+      $window.nx.widgets.matrixLayer1.matrix = matrixData[selectedSequencerBank][2];
+      $window.nx.widgets.matrixLayer1.init();
+
+      console.log(JSON.stringify(matrixData[selectedSequencerBank]));
+    }
+
+    function initMatrixData() {
+      matrixData = new Array(numSequencerBanks);
+      for(var x=0; x < numSequencerBanks; x++) {
+        matrixData[x] = new Array(3); // create a 3x16x4 matrix container
+        for(var y=0; y<3; y++) {
+          matrixData[x][y] = new Array(16); // create array of 16 cols
+          for(var i=0; i<16; i++) {
+            matrixData[x][y][i] = new Array(4); // create a single 4-cell col
+            for(var j=0; j<4; j++) {
+              matrixData[x][y][i][j] = 0;
+            }
+          }
+        }
+      }
+      matrixData[0] = [[[0,0,0,1],[0,0,0,0],[0,0,0,0],[0,0,0,0],[1,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,1,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,1,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]],[[1,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,1,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,1,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[1,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]],[[0,0,0,0],[0,0,0,0],[0,1,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,1,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,1],[0,0,0,0],[0,0,0,0],[0,0,0,0],[1,0,0,0],[0,0,0,0]]];
+
+      matrixData[1] = [[[0,0,0,1],[0,0,0,0],[1,0,0,0],[0,1,0,0],[0,0,0,0],[0,0,1,0],[0,0,0,0],[0,0,0,1],[0,0,0,0],[0,1,0,0],[0,0,0,0],[0,0,1,0],[0,0,0,0],[1,0,0,0],[0,0,0,1],[0,0,0,0]],[[0,0,0,0],[1,0,0,0],[0,0,0,0],[0,0,1,0],[0,1,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,1],[0,0,0,0],[0,0,1,0],[0,0,0,0],[1,0,0,0],[0,1,0,0],[0,0,0,0],[0,0,0,1]],[[0,0,1,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[1,0,0,0],[0,1,0,0],[0,0,0,1],[0,0,0,0],[1,0,0,0],[0,0,0,0],[0,0,1,0],[0,0,0,0],[0,1,0,0],[0,0,0,0]]];
+
+      matrixData[2] =
+      [[[0,0,1,0],[0,0,0,0],[0,0,0,1],[0,0,0,0],[0,0,0,0],[1,0,0,0],[0,0,0,0],[0,0,1,0],[1,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,1,0],[0,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,0]],[[0,0,0,0],[0,0,0,0],[0,0,1,0],[0,0,0,0],[0,0,0,0],[1,0,0,0],[0,0,0,0],[0,0,1,0],[1,0,0,0],[0,0,0,0],[0,0,1,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]],[[0,0,0,0],[0,0,1,0],[0,0,0,0],[1,0,0,0],[0,1,0,0],[1,0,0,0],[0,0,0,0],[0,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1],[0,0,0,0],[0,0,0,0],[0,1,0,0],[0,0,0,0],[0,0,0,0]]];
+
+      matrixData[3] =
+      [[[0,0,0,1],[0,1,0,0],[1,0,0,0],[0,0,0,0],[0,0,0,1],[0,0,0,0],[1,0,0,0],[0,0,1,0],[0,0,0,0],[0,1,0,0],[0,0,0,0],[1,0,0,0],[0,0,0,1],[0,0,0,0],[0,0,0,0],[1,0,0,0]],[[0,0,0,0],[0,0,1,0],[1,0,0,0],[0,0,0,0],[0,0,0,1],[0,0,1,0],[0,1,0,0],[0,0,0,0],[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1],[0,1,0,0],[0,0,1,0],[1,0,0,0],[0,0,1,0]],[[1,0,0,0],[0,0,0,0],[0,1,0,0],[1,0,0,0],[0,0,1,0],[0,0,0,0],[0,1,0,0],[1,0,0,0],[0,0,0,1],[0,0,0,0],[0,0,1,0],[0,1,0,0],[0,0,0,1],[0,1,0,0],[0,0,1,0],[0,0,0,0]]];
+
+      matrixData[4] = [[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]],[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]],[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]]];
+
+    }
+
+    refreshMatrixView();
+
   }
 
-  // (this is what Angular normally does)
-  function refreshMatrixView() {
-
-  }
 
   // remove socket listeners when leaving page (called automatically)
   $scope.$on('$destroy', function (event) {
@@ -25003,7 +25050,6 @@ FADER:
 
 SEQUENCER:
  - add a clip transition-velocity slider
- - make several matrix banks with pre-loaded automation patterns, and order the patterns left-to-right in order of ascending busy-ness (from chill to intense)
  - improve layout of matrix layer enable/disable toggle buttons
 
 */

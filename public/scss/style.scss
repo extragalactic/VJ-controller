@@ -172,11 +172,15 @@ div {
 
 //--------------------------------------------------
 #matrixLayer1, #matrixLayer2, #matrixLayer3 {
-    width: 740px;
+    width: 720px;
     height: 140px;
 }
 #matrixOptions1, #matrixOptions2, #matrixOptions3 {
     width: 50px;
+    height: 140px;
+}
+#matrixToggle1, #matrixToggle2, #matrixToggle3 {
+    width: 30px;
     height: 140px;
 }
 #matrixWrapper {
@@ -188,9 +192,13 @@ div {
     float: left;
 }
 #stepMatrix {
-    width: 740px;
+    width: 720px;
     float: left;
     padding-left: 8px;
+}
+#matrixToggleControls {
+    width: 30px;
+    float: left;
 }
 #rightControls {
     width: 160px;
@@ -227,13 +235,8 @@ div {
     padding: 30px;
     margin-left: 10px;
 }
-#matrixToggle1, #matrixToggle2, #matrixToggle3 {
-    width: 35px;
-    height: 80px;
-    margin: 5px;
-}
 #bankSelectorTabs {
-    width: 740px;
+    width: 720px;
     height: 30px;
     margin-left: 55px;
     margin-top: 10px;
