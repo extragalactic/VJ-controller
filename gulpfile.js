@@ -15,6 +15,7 @@ var jsSources = [
   'public/js/controllers/headerCtrl.js',
   'public/js/services/socketFactory.js',
   'public/js/services/assetLibrary.js',
+  'public/js/services/colorLibrary.js',  
   'public/lib/ng-color-picker/color-picker.js'
 ];
 var htmlSources = [

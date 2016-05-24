@@ -89,7 +89,7 @@ div label {
   padding-bottom: 20px; }
 
 #controlOnOff1 {
-  width: 150px; }
+  width: 600px; }
 
 #controlTabs1 {
   float: right; }
@@ -101,7 +101,8 @@ div label {
 #controlsLine2 {
   clear: both;
   float: left;
-  padding-bottom: 20px; }
+  padding-bottom: 20px;
+  width: 960px; }
 
 #tempoTabs {
   width: 900px;
@@ -109,22 +110,34 @@ div label {
 
 #controlsLine3 {
   padding-bottom: 20px;
-  clear: both;
-  float: left; }
+  clear: both; }
 
 #styleModSliders {
   width: 800px;
   height: 200px;
-  padding-right: 20px; }
+  padding-right: 20px;
+  float: left; }
 
-#faderSlider {
-  width: 90px;
-  height: 200px;
-  margin-left: 5px; }
+#invertToggle, #reverseToggle {
+  width: 100px;
+  height: 70px;
+  margin-right: 40px;
+  margin-bottom: 10px; }
 
 #faderToggle {
   width: 180px;
-  height: 100px; }
+  height: 100px;
+  margin-right: 40px; }
+
+#faderSlider {
+  width: 70px;
+  height: 100px;
+  margin-right: 40px; }
+
+#layerSlider1, #layerSlider2, #layerSlider3, #layerSlider4 {
+  width: 40px;
+  height: 100px;
+  margin-right: 10px; }
 
 .microsliders {
   padding: 0px 3px;

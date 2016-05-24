@@ -1,36 +1,37 @@
 // ----------------------------------------------------
 // Clip Sequencer Controller
 // ----------------------------------------------------
-
-// Note: This code needs to be seriously refactored and cleaned up...
-
-angular.module('myApp').controller('SequencerController', ['$scope', '$window', '$http', 'socket', 'appVars', 'AssetLibrary', function ($scope, $window, $http, socket, appVars, AssetLibrary) {
+angular.module('myApp').controller('SequencerController', ['$scope', '$window', '$http', 'socket', 'appVars', 'ColorLibrary', 'AssetLibrary', function ($scope, $window, $http, socket, appVars, ColorLibrary, AssetLibrary) {
   "use strict";
+
+  var matrixData = [];
+
+  AssetLibrary.loadAllAssets(function() {
+    // start the page after all assets have been loaded
+    matrixData = AssetLibrary.getMatrixData().matrixData;
+    initControls();
+  });
+
 
   function initControls () {
     console.log('init sequencer');
+    /*
+    The automation assumes the following Resolume layer structure:
 
-    // set colors (.. migrate to a ColorPalette Service)
-    var firstColorLight = "#ba6fe8";
-    var firstColorMedium = "#7D3CA3";
-    var firstColorDark = "#3F1756";
-    var secondColorLight = "#FC6ACD";
-    var secondColorMedium = "#B03889";
-    var secondColorDark = "#63164A";
-    var thirdColorLight = "#766AFC";
-    var thirdColorMedium = "#4238B0";
-    var thirdColorDark = "#1C1663";
-    var firstColorLightComp = "#9de86f";
-    var firstColorMediumComp = "#62a33c";
-    var firstColorDarkComp = "#2e4e1c";
-    var colorGreyDark = "#111111";
-    var colorGreyMedium = "#222222";
-    var colorOffState = "#440000";
+    layer* - can add new layers here, above the rest
+    layer4 - FX layer
+    layer3 - content layer A
+    layer2 - content layer B
+    layer1 - background content layer (NOT automated)
 
-    $window.nx.colorize(firstColorLight);
-    $window.nx.colorize("border", colorGreyMedium);
-    $window.nx.colorize("accentborder", firstColorDarkComp);
-    $window.nx.colorize("fill", firstColorDark);
+    Having 2 automated clip layers + 1 automated FX layer + a background layer is exactly how many I require (any more becomes unweildly during performance).
+
+    For the FX layer, the 4th clip in each set will always be an empty clip to allow disabling the effects while sequencing.
+    */
+
+    $window.nx.colorize(ColorLibrary.getColor('first','light'));
+    $window.nx.colorize("border", ColorLibrary.getColor('grey','medium'));
+    $window.nx.colorize("fill", ColorLibrary.getColor('first','dark'));
     $window.nx.colorize("black", "#ffffff");
 
     var widget; // resuable widget var
@@ -40,100 +41,79 @@ angular.module('myApp').controller('SequencerController', ['$scope', '$window', 
     var clipBankNum = [0,0,0]; // values: 0-2
     var tempoMultiplier = 1; // 1, 2, 4 etc.
 
-    // initialize the step sequencer data storage
     var numSequencerBanks = 5;
     var selectedSequencerBank = 0;
-    var matrixData;
 
-    initMatrixData();
-
-    /*
-     The automation assumes the following Resolume layer structure:
-
-     layer* - can add new layers here, above the rest
-     layer4 - FX layer
-     layer3 - content layer A
-     layer2 - content layer B
-     layer1 - background content layer (NOT automated)
-
-     Having 2 automated clip layers + 1 automated FX layer + a background layer is exactly how many I require (any more becomes unweildly during performance).
-
-     For the FX layer, the 4th clip in each set will always be an empty clip to allow disabling the effects while sequencing.
-    */
-
-    // create clip bank selection controls
-    createOptionMatrix (3, {accent: firstColorLightComp, fill: secondColorMedium});
-    createOptionMatrix (2, {accent: firstColorLightComp, fill: firstColorMedium});
-    createOptionMatrix (1, {accent: firstColorLightComp, fill: thirdColorMedium});
-
-    // create 3 step sequencer matrices (1 for FX, 2 for clips)
+    // set order of matrix colors
     var interfaceColors = {
       matrixLayer: [
-        {accent: thirdColorLight, fill: thirdColorDark},
-        {accent: firstColorLight, fill: firstColorDark},
-        {accent: secondColorLight, fill: secondColorDark}
+        {accent: ColorLibrary.getColor('third','light'), fill: ColorLibrary.getColor('third','dark')},
+        {accent: ColorLibrary.getColor('first','light'), fill: ColorLibrary.getColor('first','dark')},
+        {accent: ColorLibrary.getColor('second','light'), fill: ColorLibrary.getColor('second','dark')}
       ]
     };
-    createStepMatrix (3, {accent: secondColorLight, fill: secondColorDark});
-    createStepMatrix (2, {accent: firstColorLight, fill: firstColorDark});
-    createStepMatrix (1, {accent: thirdColorLight, fill: thirdColorDark});
 
-    createMatrixToggle(3);
-    createMatrixToggle(2);
-    createMatrixToggle(1);
-
+    // ------------------------------------------------------------------
     // sequencer on/off toggle button
-    $window.nx.add("toggle", {name: "sequencerToggle", parent:"rightControls"});
-    widget = $window.nx.widgets.sequencerToggle;
-    widget.colors = {accent: firstColorLightComp, fill: colorOffState};
-    widget.init();
-    widget.on('*', function(data) {
-      bSequencerActive = data.value ? true:false;
-      if(!bSequencerActive) {
-        // clear the FX layer when turning off
-        var layerName = "layer4"; // this is the FX layer in Resolume
-        var msgOSC = '/' + layerName + '/clear';
-        socket.emit('messageOSC', msgOSC, 1);
-      }
-    });
+    function createOnOffToggle() {
+      $window.nx.add("toggle", {name: "sequencerToggle", parent:"rightControls"});
+      widget = $window.nx.widgets.sequencerToggle;
+      widget.colors = {accent: ColorLibrary.getColor('firstComp','light'), fill: ColorLibrary.getColor('offState','medium')};
+      widget.init();
+      widget.on('*', function(data) {
+        bSequencerActive = data.value ? true:false;
+        if(!bSequencerActive) {
+          // clear the FX layer when turning off
+          var layerName = "layer4"; // this is the FX layer in Resolume
+          var msgOSC = '/' + layerName + '/clear';
+          socket.emit('messageOSC', msgOSC, 1);
+        }
+      });
+    }
 
     // BPM control widget
-    $window.nx.add("number", {name: "sequencerBPM", parent:"rightControls"});
-    widget = $window.nx.widgets.sequencerBPM;
-    widget.min = 0;
-    widget.max = 500;
-    widget.set({ value: sequencerBPM });
-    widget.init();
-    widget.on('*', function(data) {
-      sequencerBPM = data.value;
-      $window.nx.widgets.matrixLayer1.sequence(sequencerBPM*tempoMultiplier);
-      $window.nx.widgets.matrixLayer2.sequence(sequencerBPM*tempoMultiplier);
-      $window.nx.widgets.matrixLayer3.sequence(sequencerBPM*tempoMultiplier);
-    });
+    function createBPMControl() {
+      $window.nx.add("number", {name: "sequencerBPM", parent:"rightControls"});
+      widget = $window.nx.widgets.sequencerBPM;
+      widget.min = 0;
+      widget.max = 500;
+      widget.set({ value: sequencerBPM });
+      widget.init();
+      widget.on('*', function(data) {
+        sequencerBPM = data.value;
+        $window.nx.widgets.matrixLayer1.sequence(sequencerBPM*tempoMultiplier);
+        $window.nx.widgets.matrixLayer2.sequence(sequencerBPM*tempoMultiplier);
+        $window.nx.widgets.matrixLayer3.sequence(sequencerBPM*tempoMultiplier);
+      });
+    }
 
     // BPM multiplier tabs
-    $window.nx.add("tabs", {name: "tempoMultiplierTabs", parent:"rightControls"});
-    widget = $window.nx.widgets.tempoMultiplierTabs;
-    widget.options = ["x1", "x2", "x4", "x8"];
-    widget.init();
-    widget.on('*', function(data) {
-      var tempos = [1,2,4,8];
-      tempoMultiplier = tempos[data.index];
-      $window.nx.widgets.matrixLayer1.sequence(sequencerBPM*tempoMultiplier);
-      $window.nx.widgets.matrixLayer2.sequence(sequencerBPM*tempoMultiplier);
-      $window.nx.widgets.matrixLayer3.sequence(sequencerBPM*tempoMultiplier);
-    });
+    function createBPMMultiplierTabs() {
+      $window.nx.add("tabs", {name: "tempoMultiplierTabs", parent:"rightControls"});
+      widget = $window.nx.widgets.tempoMultiplierTabs;
+      widget.options = ["x1", "x2", "x4", "x8"];
+      widget.init();
+      widget.on('*', function(data) {
+        var tempos = [1,2,4,8];
+        tempoMultiplier = tempos[data.index];
+        $window.nx.widgets.matrixLayer1.sequence(sequencerBPM*tempoMultiplier);
+        $window.nx.widgets.matrixLayer2.sequence(sequencerBPM*tempoMultiplier);
+        $window.nx.widgets.matrixLayer3.sequence(sequencerBPM*tempoMultiplier);
+      });
+    }
 
     // re-sync sequencer button
-    $window.nx.add("multitouch", {name: "resyncButton", parent:"rightControls"});
-    widget = $window.nx.widgets.resyncButton;
-    widget.colors = {accent: firstColorLightComp, fill: firstColorDarkComp};
-    widget.init();
-    widget.on('*', function(data) {
-      $window.nx.widgets.matrixLayer1.jumpToCol(0);
-      $window.nx.widgets.matrixLayer2.jumpToCol(0);
-      $window.nx.widgets.matrixLayer3.jumpToCol(0);
-    });
+    function createResyncButton() {
+      $window.nx.add("multitouch", {name: "resyncButton", parent:"rightControls"});
+      widget = $window.nx.widgets.resyncButton;
+      widget.colors = {accent: ColorLibrary.getColor('firstComp','light'), fill: ColorLibrary.getColor('firstComp','dark')};
+      widget.init();
+      widget.on('*', function(data) {
+        $window.nx.widgets.matrixLayer1.jumpToCol(0);
+        $window.nx.widgets.matrixLayer2.jumpToCol(0);
+        $window.nx.widgets.matrixLayer3.jumpToCol(0);
+      });
+    }
 
     // toggle each individual matrix (for FX, Layer1 & Layer2)
     function createMatrixToggle(n) {
@@ -141,7 +121,7 @@ angular.module('myApp').controller('SequencerController', ['$scope', '$window', 
       var buttonName = "matrixToggle" + n;
       $window.nx.add("toggle", {name: buttonName, parent:"matrixToggleControls"});
       widget = $window.nx.widgets[buttonName];
-      widget.colors = {accent: interfaceColors.matrixLayer[n-1].accent, fill: colorOffState, border: colorGreyMedium, black: colorGreyMedium, white: colorGreyMedium};
+      widget.colors = {accent: interfaceColors.matrixLayer[n-1].accent, fill: ColorLibrary.getColor('offState','medium'), border: ColorLibrary.getColor('grey','medium'), black: ColorLibrary.getColor('grey','medium'), white: ColorLibrary.getColor('grey','medium')};
       widget.set({value:1});
       widget.init();
       widget.on('*', function(data) {
@@ -166,16 +146,17 @@ angular.module('myApp').controller('SequencerController', ['$scope', '$window', 
       });
     }
 
-
     // create bank selector tabs
-    $window.nx.add("tabs", {name: "bankSelectorTabs", parent:"bottomControls"});
-    widget = $window.nx.widgets.bankSelectorTabs;
-    widget.options = ["1", "2", "3", "4", "5"];
-    widget.init();
-    widget.on('*', function(data) {
-      selectedSequencerBank = data.index;
-      refreshMatrixView();
-    });
+    function createBankSelectorTabs() {
+      $window.nx.add("tabs", {name: "bankSelectorTabs", parent:"bottomControls"});
+      widget = $window.nx.widgets.bankSelectorTabs;
+      widget.options = ["1", "2", "3", "4", "5"];
+      widget.init();
+      widget.on('*', function(data) {
+        selectedSequencerBank = data.index;
+        refreshMatrixView();
+      });
+    }
 
     // create a 16x4 clip sequencer matrix
     function createStepMatrix (sequencerNum, colors) {
@@ -184,7 +165,7 @@ angular.module('myApp').controller('SequencerController', ['$scope', '$window', 
       var widget = $window.nx.widgets[matrixName];
       widget.col = 16;
       widget.row = 4;
-      widget.colors = {accent: colors.accent, fill: colors.fill, border: firstColorLightComp};
+      widget.colors = {accent: colors.accent, fill: colors.fill, border: ColorLibrary.getColor('firstComp','light')};
       widget.sequence(sequencerBPM);
       widget.init();
       widget.on('*', function(data) {
@@ -225,7 +206,7 @@ angular.module('myApp').controller('SequencerController', ['$scope', '$window', 
       widget.col = 1;
       widget.row = 3;
       widget.matrix[0][0] = 1;
-      widget.colors = {accent: colors.accent, fill: colors.fill, border: firstColorLightComp};
+      widget.colors = {accent: colors.accent, fill: colors.fill, border: ColorLibrary.getColor('firstComp','light')};
       widget.init();
       widget.on('*', function(data) {
         if(data.level===1) {
@@ -234,6 +215,21 @@ angular.module('myApp').controller('SequencerController', ['$scope', '$window', 
             if(data.row !== j) widget.setCell(data.col, j, 0);
           }
           clipBankNum[3-sequencerNum] = data.row;
+        } else {
+          /*
+          var isEmpty=true;
+          console.log(JSON.stringify(widget.matrix));
+          for(var i=0; i < widget.matrix[0].length; i++) {
+            if(widget.matrix[0][i] == 1) {
+              isEmpty = false;
+            //  break;
+            }
+            if(isEmpty===true) {
+              console.log('reset cell');
+              widget.matrix[0][data.row] = 1;
+            }
+          }
+          */
         }
       });
     }
@@ -251,6 +247,7 @@ angular.module('myApp').controller('SequencerController', ['$scope', '$window', 
       console.log(JSON.stringify(matrixData[selectedSequencerBank]));
     }
 
+    /*
     function initMatrixData() {
       matrixData = new Array(numSequencerBanks);
       for(var x=0; x < numSequencerBanks; x++) {
@@ -265,31 +262,36 @@ angular.module('myApp').controller('SequencerController', ['$scope', '$window', 
           }
         }
       }
-      matrixData[0] = [[[0,0,0,1],[0,0,0,0],[0,0,0,0],[0,0,0,0],[1,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,1,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,1,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]],[[1,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,1,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,1,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[1,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]],[[0,0,0,0],[0,0,0,0],[0,1,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,1,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,1],[0,0,0,0],[0,0,0,0],[0,0,0,0],[1,0,0,0],[0,0,0,0]]];
-
-      matrixData[1] = [[[0,0,0,1],[0,0,0,0],[1,0,0,0],[0,1,0,0],[0,0,0,0],[0,0,1,0],[0,0,0,0],[0,0,0,1],[0,0,0,0],[0,1,0,0],[0,0,0,0],[0,0,1,0],[0,0,0,0],[1,0,0,0],[0,0,0,1],[0,0,0,0]],[[0,0,0,0],[1,0,0,0],[0,0,0,0],[0,0,1,0],[0,1,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,1],[0,0,0,0],[0,0,1,0],[0,0,0,0],[1,0,0,0],[0,1,0,0],[0,0,0,0],[0,0,0,1]],[[0,0,1,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[1,0,0,0],[0,1,0,0],[0,0,0,1],[0,0,0,0],[1,0,0,0],[0,0,0,0],[0,0,1,0],[0,0,0,0],[0,1,0,0],[0,0,0,0]]];
-
-      matrixData[2] =
-      [[[0,0,1,0],[0,0,0,0],[0,0,0,1],[0,0,0,0],[0,0,0,0],[1,0,0,0],[0,0,0,0],[0,0,1,0],[1,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,1,0],[0,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,0]],[[0,0,0,0],[0,0,0,0],[0,0,1,0],[0,0,0,0],[0,0,0,0],[1,0,0,0],[0,0,0,0],[0,0,1,0],[1,0,0,0],[0,0,0,0],[0,0,1,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]],[[0,0,0,0],[0,0,1,0],[0,0,0,0],[1,0,0,0],[0,1,0,0],[1,0,0,0],[0,0,0,0],[0,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1],[0,0,0,0],[0,0,0,0],[0,1,0,0],[0,0,0,0],[0,0,0,0]]];
-
-      matrixData[3] =
-      [[[0,0,0,1],[0,1,0,0],[1,0,0,0],[0,0,0,0],[0,0,0,1],[0,0,0,0],[1,0,0,0],[0,0,1,0],[0,0,0,0],[0,1,0,0],[0,0,0,0],[1,0,0,0],[0,0,0,1],[0,0,0,0],[0,0,0,0],[1,0,0,0]],[[0,0,0,0],[0,0,1,0],[1,0,0,0],[0,0,0,0],[0,0,0,1],[0,0,1,0],[0,1,0,0],[0,0,0,0],[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1],[0,1,0,0],[0,0,1,0],[1,0,0,0],[0,0,1,0]],[[1,0,0,0],[0,0,0,0],[0,1,0,0],[1,0,0,0],[0,0,1,0],[0,0,0,0],[0,1,0,0],[1,0,0,0],[0,0,0,1],[0,0,0,0],[0,0,1,0],[0,1,0,0],[0,0,0,1],[0,1,0,0],[0,0,1,0],[0,0,0,0]]];
-
-      matrixData[4] = [[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]],[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]],[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]]];
-
     }
+    */
+    // ------------------------------------------------------------------
+
+    createOptionMatrix (3, {accent: ColorLibrary.getColor('firstComp','light'), fill: ColorLibrary.getColor('second','medium')});
+    createOptionMatrix (2, {accent: ColorLibrary.getColor('firstComp','light'), fill: ColorLibrary.getColor('first','medium')});
+    createOptionMatrix (1, {accent: ColorLibrary.getColor('firstComp','light'), fill: ColorLibrary.getColor('third','medium')});
+
+    createStepMatrix (3, {accent: ColorLibrary.getColor('second','light'), fill: ColorLibrary.getColor('second','dark')});
+    createStepMatrix (2, {accent: ColorLibrary.getColor('first','light'), fill: ColorLibrary.getColor('first','dark')});
+    createStepMatrix (1, {accent: ColorLibrary.getColor('third','light'), fill: ColorLibrary.getColor('third','dark')});
+
+    createMatrixToggle(3);
+    createMatrixToggle(2);
+    createMatrixToggle(1);
+
+    createOnOffToggle();
+    createBPMControl();
+    createBPMMultiplierTabs();
+    createResyncButton();
+    createBankSelectorTabs();
 
     refreshMatrixView();
 
   }
 
-
   // remove socket listeners when leaving page (called automatically)
   $scope.$on('$destroy', function (event) {
     socket.removeAllListeners();
   });
-
-  initControls();
 
 /*
 ToDo:
@@ -301,11 +303,9 @@ GENERAL:
 FADER:
  - disable the manual fader when the automater is running
  - add in Invert and Reverse buttons, place them where the fader currently is, then move the fader to the bottom horizontally
- - When the fader automater is running, it should also be animating the slider (Note: requires bi-directional OSC from Resolume... which is a separate issue)
 
 SEQUENCER:
  - add a clip transition-velocity slider
- - improve layout of matrix layer enable/disable toggle buttons
 
 */
 

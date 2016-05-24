@@ -1,13 +1,12 @@
 // ----------------------------------------------------
-// Controls Controller
+// Fader Controls Controller
 //  ...this controller controls the controls on my controller :)
 // ----------------------------------------------------
 
-// Controls Controller
-angular.module('myApp').controller('ControlsController', ['$scope', '$window', '$http', 'socket', 'appVars', 'AssetLibrary', function ($scope, $window, $http, socket, appVars, AssetLibrary) {
+// Fader Controls Controller
+angular.module('myApp').controller('ControlsController', ['$scope', '$window', '$http', 'socket', 'appVars', 'ColorLibrary', 'AssetLibrary', function ($scope, $window, $http, socket, appVars, ColorLibrary, AssetLibrary) {
   "use strict";
 
-//  var faderSpeedArray = [8.0001, 4.0001, 2.0001, 1.0001, 0.5, 0.25, 0.125, 0.0625, 0.0312, 0.0156];
   var faderSpeedArray = [0.0001220, 0.0002441, 0.0007324, 0.001706, 0.003656, 0.0007556, 0.015356];
 
   var faderStylePresets = [
@@ -46,23 +45,9 @@ angular.module('myApp').controller('ControlsController', ['$scope', '$window', '
   function initControls () {
     console.log('init controls');
 
-    // set colors
-    var firstColorLight = "#ba6fe8";
-    var firstColorMedium = "#7D3CA3";
-    var firstColorDark = "#3F1756";
-    var secondColorLight = "#FC6ACD";
-    var secondColorMedium = "#B03889";
-    var secondColorDark = "#63164A";
-    var thirdColorLight = "#766AFC";
-    var thirdColorMedium = "#4238B0";
-    var thirdColorDark = "#1C1663";
-    var firstColorLightComp = "#9de86f";
-    var firstColorMediumComp = "#62a33c";
-    var firstColorDarkComp = "#2e4e1c";
-
-    $window.nx.colorize(firstColorLight);
-    $window.nx.colorize("border", firstColorMediumComp);
-    $window.nx.colorize("fill", firstColorDark);
+    $window.nx.colorize(ColorLibrary.getColor('first','light'));
+    $window.nx.colorize("border", ColorLibrary.getColor('firstComp','medium'));
+    $window.nx.colorize("fill", ColorLibrary.getColor('first','dark'));
     $window.nx.colorize("black", "#ffffff");
 
     var widget;
@@ -72,8 +57,36 @@ angular.module('myApp').controller('ControlsController', ['$scope', '$window', '
     // on/off toggle button
     $window.nx.add("toggle", {name: "faderToggle", parent:"controlOnOff1"});
     widget = $window.nx.widgets.faderToggle;
-    widget.colors = {accent: firstColorLightComp, fill: "#440000"};
+    widget.colors = {accent: ColorLibrary.getColor('firstComp','light'), fill: ColorLibrary.getColor('offState','medium')};
     widget.init();
+
+    // basic fader
+    $window.nx.add("slider", {name: "faderSlider", parent:"controlOnOff1"});
+    widget = $window.nx.widgets.faderSlider;
+    //widget.sliders = 1;
+    widget.on('*', function(data) {
+      var msgOSC = '/composition/cross/values';
+      //var val = data.value;
+      socket.emit('messageOSC', msgOSC, val);
+    });
+
+    // layer opacity faders
+    /*
+    function createLayerOpacitySlider(n) {
+        var widgetName = "layerSlider" + n;
+        $window.nx.add("slider", {name: widgetName, parent:"controlOnOff1"});
+        widget = $window.nx.widgets[widgetName];
+        widget.on('*', function(data) {
+          var msgOSC = '/layer' + n + '/video/opacity/values';
+          //var val = data.value;
+          //socket.emit('messageOSC', msgOSC, val);
+        });
+    }
+    createLayerOpacitySlider(4);
+    createLayerOpacitySlider(3);
+    createLayerOpacitySlider(2);
+    createLayerOpacitySlider(1);
+    */
 
     widget.on('*', function(data) {
       var msgOSC_dir = '/composition/video/effect1/param1/direction';
@@ -100,7 +113,7 @@ angular.module('myApp').controller('ControlsController', ['$scope', '$window', '
       $window.nx.add("multislider", {name: sliderName, parent:"controlsLine0"});
       widget = $window.nx.widgets[sliderName];
       widget.sliders = faderStylePresets.length;
-      widget.colors = {fill: thirdColorDark, accent: thirdColorMedium};
+      widget.colors = {fill: ColorLibrary.getColor('third','dark'), accent: ColorLibrary.getColor('third','medium')};
       widget.init();
       for(var j=0; j<faderStylePresets[i].length; j++) {
         widget.setSliderValue(j, faderStylePresets[i][j]);
@@ -141,9 +154,7 @@ angular.module('myApp').controller('ControlsController', ['$scope', '$window', '
           .call(handleComplete)
           .addEventListener("change", handleChange);
       }
-      function onClickPresetTab (data) {
 
-      }
       function handleChange(event) {
         var yPos = event.target.target.y;
         var index = event.target.target.i;
@@ -173,11 +184,29 @@ angular.module('myApp').controller('ControlsController', ['$scope', '$window', '
       }
     });
 
+    // pattern invert and reverse buttons
+    $window.nx.add("toggle", {name: "invertToggle", parent:"controlsLine2"});
+    widget = $window.nx.widgets.invertToggle;
+    widget.colors = {accent: ColorLibrary.getColor('firstComp','light'), fill: ColorLibrary.getColor('offState','medium')};
+    widget.init();
+    widget.on('*', function(data) {
+        // invert slider values
+    });
+
+    $window.nx.add("toggle", {name: "reverseToggle", parent:"controlsLine2"});
+    widget = $window.nx.widgets.reverseToggle;
+    widget.colors = {accent: ColorLibrary.getColor('firstComp','light'), fill: ColorLibrary.getColor('offState','medium')};
+    widget.init();
+    widget.on('*', function(data) {
+        // reverse slider values
+    });
+
     // tempo buttons
     $window.nx.add("tabs", {name: "tempoTabs", parent:"controlTabs2"});
     widget = $window.nx.widgets.tempoTabs;
     widget.options = ["x1", "x2", "x4", "x8", "x16", "x32", "x64"];
-    widget.colors = {accent: secondColorMedium, fill: secondColorDark, white: "#ffffff", black: "#ffffff"};
+    widget.colors = {accent: ColorLibrary.getColor('second','medium'), fill: ColorLibrary.getColor('second','dark'), white: "#ffffff", black: "#ffffff"};
+    //widget.set({index: 2});
     widget.init();
     widget.on('*', function(data) {
       onClickTempoTab(data);
@@ -189,14 +218,6 @@ angular.module('myApp').controller('ControlsController', ['$scope', '$window', '
       socket.emit('messageOSC', msgOSC, val);
     }
 
-    // basic fader
-    $window.nx.add("slider", {name: "faderSlider", parent:"controlsLine2"});
-    widget = $window.nx.widgets.faderSlider;
-    widget.on('*', function(data) {
-      var msgOSC = '/composition/cross/values';
-      var val = data.value;
-      socket.emit('messageOSC', msgOSC, val);
-    });
 
     /*
     // other NexusUI widgets I haven't used yet

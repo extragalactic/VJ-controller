@@ -3,11 +3,11 @@ angular.module('myApp').factory('AssetLibrary', function () {
   "use strict";
 
   var loadCompleteCallback = null;
-  var manifest = "data/brushesManifest.json";
+  var dataManifest = "data/loadManifest.json";
   console.debug('init asset library');
 
   // Create a LoadQueue instance
-  var loadQueue = new createjs.LoadQueue();
+  var loadQueue = new createjs.LoadQueue(false);
 
   // Listener to the Complete event (when all files are loaded)
   loadQueue.addEventListener("complete", function() {
@@ -16,7 +16,7 @@ angular.module('myApp').factory('AssetLibrary', function () {
   });
 
   loadQueue.addEventListener("error", function() {
-    console.warning('error loading files');
+    console.warn('error loading files');
     return false;
   });
 
@@ -25,14 +25,15 @@ angular.module('myApp').factory('AssetLibrary', function () {
       loadCompleteCallback = callback;
       if(true) {
         // start loading assets
-        loadQueue.loadManifest({src: manifest, type: "manifest"});
+        loadQueue.loadManifest({src: dataManifest, type: "manifest"});
       } else {
         // assets already loaded so return
         loadCompleteCallback();
       }
     },
-    getBrush: function (brushName) {
-      return loadQueue.getResult(brushName);
+    getMatrixData: function () {
+      return loadQueue.getResult("matrixInit");
     }
   };
+
 });

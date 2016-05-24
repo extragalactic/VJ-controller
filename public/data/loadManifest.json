@@ -1,0 +1,6 @@
+{
+  "path": "data/",
+  "manifest": [
+    {"src":"matrixInit.json", "id":"matrixInit"}
+  ]
+}
