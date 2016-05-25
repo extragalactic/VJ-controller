@@ -45,33 +45,77 @@ angular.module('myApp').controller('ControlsController', ['$scope', '$window', '
   function initControls () {
     console.log('init controls');
 
-    $window.nx.colorize(ColorLibrary.getColor('first','light'));
-    $window.nx.colorize("border", ColorLibrary.getColor('firstComp','medium'));
-    $window.nx.colorize("fill", ColorLibrary.getColor('first','dark'));
+    var color = ColorLibrary.getColor; // shortcut
+    
+    $window.nx.colorize(color('first','light'));
+    $window.nx.colorize("border", color('firstComp','medium'));
+    $window.nx.colorize("fill", color('first','dark'));
     $window.nx.colorize("black", "#ffffff");
 
     var widget;
     var selectedStylePreset = 0;
     var sliderAnimationCount = 0; // need to monitor this to prevent the microsliders from also animating to a new position when selecting a new preset
 
+    createOnOffToggle();
+    createMasterFader();
+    createMicroSliders();
+    createStylePresets();
+    createStyleModSliders();
+    createInvertReverseButtons();
+    createTempoButtons();
+
+    /*
+    createLayerOpacitySlider(4);
+    createLayerOpacitySlider(3);
+    createLayerOpacitySlider(2);
+    createLayerOpacitySlider(1);
+    */
+
+    // init the multislider with the first preset
+    onClickPresetTab({index: 0});
+
+    // -----------------------------------------------------------------
+
     // on/off toggle button
-    $window.nx.add("toggle", {name: "faderToggle", parent:"controlOnOff1"});
-    widget = $window.nx.widgets.faderToggle;
-    widget.colors = {accent: ColorLibrary.getColor('firstComp','light'), fill: ColorLibrary.getColor('offState','medium')};
-    widget.init();
+    function createOnOffToggle() {
+      $window.nx.add("toggle", {name: "faderToggle", parent:"controlOnOff1"});
+      widget = $window.nx.widgets.faderToggle;
+      widget.colors = {accent: color('firstComp','light'), fill: color('offState','medium')};
+      widget.init();
+
+      widget.on('*', function(data) {
+        var msgOSC_dir = '/composition/video/effect1/param1/direction';
+        var msgOSC_faderpos = '/composition/cross/values';
+        var msgOSC_bypass = '/composition/video/effect1/bypassed';
+        var msgOSC_runpos = '/composition/video/effect1/param1/values';
+
+        if(data.value===1) {
+          // turn on fader automation
+          socket.emit('messageOSC', msgOSC_bypass, 0);
+          socket.emit('messageOSC', msgOSC_dir, 1);
+        } else {
+          // turn off fader automation
+          socket.emit('messageOSC', msgOSC_dir, 2);
+          socket.emit('messageOSC', msgOSC_bypass, 1);
+          socket.emit('messageOSC', msgOSC_faderpos, -1.00001);
+          socket.emit('messageOSC', msgOSC_runpos, 0.00001);
+        }
+      });
+    }
 
     // basic fader
-    $window.nx.add("slider", {name: "faderSlider", parent:"controlOnOff1"});
-    widget = $window.nx.widgets.faderSlider;
-    //widget.sliders = 1;
-    widget.on('*', function(data) {
-      var msgOSC = '/composition/cross/values';
-      //var val = data.value;
-      socket.emit('messageOSC', msgOSC, val);
-    });
+    function createMasterFader() {
+      $window.nx.add("slider", {name: "faderSlider", parent:"controlOnOff1"});
+      widget = $window.nx.widgets.faderSlider;
+      //widget.sliders = 1;
+      widget.on('*', function(data) {
+        var msgOSC = '/composition/cross/values';
+        //var val = data.value;
+        socket.emit('messageOSC', msgOSC, val);
+      });
+    }
 
     // layer opacity faders
-    /*
     function createLayerOpacitySlider(n) {
         var widgetName = "layerSlider" + n;
         $window.nx.add("slider", {name: widgetName, parent:"controlOnOff1"});
@@ -82,57 +126,36 @@ angular.module('myApp').controller('ControlsController', ['$scope', '$window', '
           //socket.emit('messageOSC', msgOSC, val);
         });
     }
-    createLayerOpacitySlider(4);
-    createLayerOpacitySlider(3);
-    createLayerOpacitySlider(2);
-    createLayerOpacitySlider(1);
-    */
-
-    widget.on('*', function(data) {
-      var msgOSC_dir = '/composition/video/effect1/param1/direction';
-      var msgOSC_faderpos = '/composition/cross/values';
-      var msgOSC_bypass = '/composition/video/effect1/bypassed';
-      var msgOSC_runpos = '/composition/video/effect1/param1/values';
-
-      if(data.value===1) {
-        // turn on fader automation
-        socket.emit('messageOSC', msgOSC_bypass, 0);
-        socket.emit('messageOSC', msgOSC_dir, 1);
-      } else {
-        // turn off fader automation
-        socket.emit('messageOSC', msgOSC_dir, 2);
-        socket.emit('messageOSC', msgOSC_bypass, 1);
-        socket.emit('messageOSC', msgOSC_faderpos, -1.00001);
-        socket.emit('messageOSC', msgOSC_runpos, 0.00001);
-      }
-    });
 
     // microslider array
-    for(var i=0; i<faderStylePresets.length; i++) {
-      var sliderName = "microslider"+(i+1);
-      $window.nx.add("multislider", {name: sliderName, parent:"controlsLine0"});
-      widget = $window.nx.widgets[sliderName];
-      widget.sliders = faderStylePresets.length;
-      widget.colors = {fill: ColorLibrary.getColor('third','dark'), accent: ColorLibrary.getColor('third','medium')};
-      widget.init();
-      for(var j=0; j<faderStylePresets[i].length; j++) {
-        widget.setSliderValue(j, faderStylePresets[i][j]);
+    function createMicroSliders() {
+      for(var i=0; i<faderStylePresets.length; i++) {
+        var sliderName = "microslider"+(i+1);
+        $window.nx.add("multislider", {name: sliderName, parent:"controlsLine0"});
+        widget = $window.nx.widgets[sliderName];
+        widget.sliders = faderStylePresets.length;
+        widget.colors = {fill: color('third','dark'), accent: color('third','medium')};
+        widget.init();
+        for(var j=0; j<faderStylePresets[i].length; j++) {
+          widget.setSliderValue(j, faderStylePresets[i][j]);
+        }
+        var id = $window.document.getElementById(sliderName);
+        id.className = "microsliders";
+        //widget.on('*', microSliderClickHandler(data));
+        widget.click = microSliderClickHandler2();
       }
-      var id = $window.document.getElementById(sliderName);
-      id.className = "microsliders";
-      //widget.on('*', microSliderClickHandler(data));
-      widget.click = microSliderClickHandler2();
     }
 
     // beat style preset buttons
-    $window.nx.add("tabs", {name: "beatStyleTabs", parent:"controlTabs1"});
-    widget = $window.nx.widgets.beatStyleTabs;
-    widget.options = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
-    widget.init();
-    widget.on('*', function(data) {
-      onClickPresetTab(data);
-    });
-
+    function createStylePresets() {
+      $window.nx.add("tabs", {name: "beatStyleTabs", parent:"controlTabs1"});
+      widget = $window.nx.widgets.beatStyleTabs;
+      widget.options = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
+      widget.init();
+      widget.on('*', function(data) {
+        onClickPresetTab(data);
+      });
+    }
     function onClickPresetTab(data) {
       var oldSelectedStylePreset = selectedStylePreset;
       selectedStylePreset = data.index;
@@ -153,6 +176,7 @@ angular.module('myApp').controller('ControlsController', ['$scope', '$window', '
           .to({y: newPos}, 250, createjs.Ease.easeInCubic)
           .call(handleComplete)
           .addEventListener("change", handleChange);
+          // question: do i need to manually remove these listeners?
       }
 
       function handleChange(event) {
@@ -166,61 +190,65 @@ angular.module('myApp').controller('ControlsController', ['$scope', '$window', '
     }
 
     // style modification sliders
-    $window.nx.add("multislider", {name: "styleModSliders", parent:"controlsLine2"});
-    widget = $window.nx.widgets.styleModSliders;
-    widget.sliders = numSteps;
-    widget.init();
-    widget.on('*', function(data) {
-      var index = parseInt(Object.keys(data)[0]);
-      if(index >= 0 && index < numSteps) {
-        var val = data[index];
-        if(sliderAnimationCount===0) {
-          var microsliderName = "microslider"+(selectedStylePreset+1);
-          $window.nx.widgets[microsliderName].setSliderValue(index, val);
+    function createStyleModSliders() {
+      $window.nx.add("multislider", {name: "styleModSliders", parent:"controlsLine2"});
+      widget = $window.nx.widgets.styleModSliders;
+      widget.sliders = numSteps;
+      widget.init();
+      widget.on('*', function(data) {
+        var index = parseInt(Object.keys(data)[0]);
+        if(index >= 0 && index < numSteps) {
+          var val = data[index];
+          if(sliderAnimationCount===0) {
+            var microsliderName = "microslider"+(selectedStylePreset+1);
+            $window.nx.widgets[microsliderName].setSliderValue(index, val);
+          }
+          faderStylePresets[selectedStylePreset][index] = val;
+          var msgOSC = '/composition/video/effect1/param' + (index+3) + '/values';
+          socket.emit('messageOSC', msgOSC, val);
         }
-        faderStylePresets[selectedStylePreset][index] = val;
-        var msgOSC = '/composition/video/effect1/param' + (index+3) + '/values';
-        socket.emit('messageOSC', msgOSC, val);
-      }
-    });
+      });
+    }
 
     // pattern invert and reverse buttons
-    $window.nx.add("toggle", {name: "invertToggle", parent:"controlsLine2"});
-    widget = $window.nx.widgets.invertToggle;
-    widget.colors = {accent: ColorLibrary.getColor('firstComp','light'), fill: ColorLibrary.getColor('offState','medium')};
-    widget.init();
-    widget.on('*', function(data) {
-        // invert slider values
-    });
+    function createInvertReverseButtons() {
+      $window.nx.add("toggle", {name: "invertToggle", parent:"controlsLine2"});
+      widget = $window.nx.widgets.invertToggle;
+      widget.colors = {accent: color('firstComp','light'), fill: color('offState','medium')};
+      widget.init();
+      widget.on('*', function(data) {
+          // invert slider values
+      });
 
-    $window.nx.add("toggle", {name: "reverseToggle", parent:"controlsLine2"});
-    widget = $window.nx.widgets.reverseToggle;
-    widget.colors = {accent: ColorLibrary.getColor('firstComp','light'), fill: ColorLibrary.getColor('offState','medium')};
-    widget.init();
-    widget.on('*', function(data) {
-        // reverse slider values
-    });
+      $window.nx.add("toggle", {name: "reverseToggle", parent:"controlsLine2"});
+      widget = $window.nx.widgets.reverseToggle;
+      widget.colors = {accent: color('firstComp','light'), fill: color('offState','medium')};
+      widget.init();
+      widget.on('*', function(data) {
+          // reverse slider values
+      });
+    }
 
     // tempo buttons
-    $window.nx.add("tabs", {name: "tempoTabs", parent:"controlTabs2"});
-    widget = $window.nx.widgets.tempoTabs;
-    widget.options = ["x1", "x2", "x4", "x8", "x16", "x32", "x64"];
-    widget.colors = {accent: ColorLibrary.getColor('second','medium'), fill: ColorLibrary.getColor('second','dark'), white: "#ffffff", black: "#ffffff"};
-    //widget.set({index: 2});
-    widget.init();
-    widget.on('*', function(data) {
-      onClickTempoTab(data);
-    });
-
+    function createTempoButtons() {
+      $window.nx.add("tabs", {name: "tempoTabs", parent:"controlTabs2"});
+      widget = $window.nx.widgets.tempoTabs;
+      widget.options = ["x1", "x2", "x4", "x8", "x16", "x32", "x64"];
+      widget.colors = {accent: color('second','medium'), fill: color('second','dark'), white: "#ffffff", black: "#ffffff"};
+      //widget.set({index: 2});
+      widget.init();
+      widget.on('*', function(data) {
+        onClickTempoTab(data);
+      });
+    }
     function onClickTempoTab (data) {
       var msgOSC = '/composition/video/effect1/param1/linkmultiplier';
       var val = faderSpeedArray[data.index];
       socket.emit('messageOSC', msgOSC, val);
     }
 
-
     /*
-    // other NexusUI widgets I haven't used yet
+    // other NexusUI widgets I haven't tried yet
 
     $window.nx.add("metroball", {parent:"mainDiv"});
     $window.nx.add("multitouch", {parent:"mainDiv"});
@@ -234,14 +262,10 @@ angular.module('myApp').controller('ControlsController', ['$scope', '$window', '
     $window.nx.add("select", {parent:"mainDiv"});
     */
 
-    // init the multislider with the first preset
-    onClickPresetTab({index: 0});
-
     // init the tempo with the x4 tempo ... hmmm, not working
     //$window.nx.widgets.tempoTabs.set({index: 2});
     //onClickTempoTab({index: 2});
     //$window.nx.widgets.tempoTabs.init();
-
   }
 
   // remove socket listeners when leaving page (called automatically)

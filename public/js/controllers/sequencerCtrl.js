@@ -28,10 +28,11 @@ angular.module('myApp').controller('SequencerController', ['$scope', '$window', 
 
     For the FX layer, the 4th clip in each set will always be an empty clip to allow disabling the effects while sequencing.
     */
+    var color = ColorLibrary.getColor; // shortcut
 
-    $window.nx.colorize(ColorLibrary.getColor('first','light'));
-    $window.nx.colorize("border", ColorLibrary.getColor('grey','medium'));
-    $window.nx.colorize("fill", ColorLibrary.getColor('first','dark'));
+    $window.nx.colorize(color('first','light'));
+    $window.nx.colorize("border", color('grey','medium'));
+    $window.nx.colorize("fill", color('first','dark'));
     $window.nx.colorize("black", "#ffffff");
 
     var widget; // resuable widget var
@@ -47,9 +48,9 @@ angular.module('myApp').controller('SequencerController', ['$scope', '$window', 
     // set order of matrix colors
     var interfaceColors = {
       matrixLayer: [
-        {accent: ColorLibrary.getColor('third','light'), fill: ColorLibrary.getColor('third','dark')},
-        {accent: ColorLibrary.getColor('first','light'), fill: ColorLibrary.getColor('first','dark')},
-        {accent: ColorLibrary.getColor('second','light'), fill: ColorLibrary.getColor('second','dark')}
+        {accent: color('third','light'), fill: color('third','dark')},
+        {accent: color('first','light'), fill: color('first','dark')},
+        {accent: color('second','light'), fill: color('second','dark')}
       ]
     };
 
@@ -58,7 +59,7 @@ angular.module('myApp').controller('SequencerController', ['$scope', '$window', 
     function createOnOffToggle() {
       $window.nx.add("toggle", {name: "sequencerToggle", parent:"rightControls"});
       widget = $window.nx.widgets.sequencerToggle;
-      widget.colors = {accent: ColorLibrary.getColor('firstComp','light'), fill: ColorLibrary.getColor('offState','medium')};
+      widget.colors = {accent: color('firstComp','light'), fill: color('offState','medium')};
       widget.init();
       widget.on('*', function(data) {
         bSequencerActive = data.value ? true:false;
@@ -106,7 +107,7 @@ angular.module('myApp').controller('SequencerController', ['$scope', '$window', 
     function createResyncButton() {
       $window.nx.add("multitouch", {name: "resyncButton", parent:"rightControls"});
       widget = $window.nx.widgets.resyncButton;
-      widget.colors = {accent: ColorLibrary.getColor('firstComp','light'), fill: ColorLibrary.getColor('firstComp','dark')};
+      widget.colors = {accent: color('firstComp','light'), fill: color('firstComp','dark')};
       widget.init();
       widget.on('*', function(data) {
         $window.nx.widgets.matrixLayer1.jumpToCol(0);
@@ -121,7 +122,7 @@ angular.module('myApp').controller('SequencerController', ['$scope', '$window', 
       var buttonName = "matrixToggle" + n;
       $window.nx.add("toggle", {name: buttonName, parent:"matrixToggleControls"});
       widget = $window.nx.widgets[buttonName];
-      widget.colors = {accent: interfaceColors.matrixLayer[n-1].accent, fill: ColorLibrary.getColor('offState','medium'), border: ColorLibrary.getColor('grey','medium'), black: ColorLibrary.getColor('grey','medium'), white: ColorLibrary.getColor('grey','medium')};
+      widget.colors = {accent: interfaceColors.matrixLayer[n-1].accent, fill: color('offState','medium'), border: color('grey','medium'), black: color('grey','medium'), white: color('grey','medium')};
       widget.set({value:1});
       widget.init();
       widget.on('*', function(data) {
@@ -165,7 +166,7 @@ angular.module('myApp').controller('SequencerController', ['$scope', '$window', 
       var widget = $window.nx.widgets[matrixName];
       widget.col = 16;
       widget.row = 4;
-      widget.colors = {accent: colors.accent, fill: colors.fill, border: ColorLibrary.getColor('firstComp','light')};
+      widget.colors = {accent: colors.accent, fill: colors.fill, border: color('firstComp','light')};
       widget.sequence(sequencerBPM);
       widget.init();
       widget.on('*', function(data) {
@@ -206,7 +207,7 @@ angular.module('myApp').controller('SequencerController', ['$scope', '$window', 
       widget.col = 1;
       widget.row = 3;
       widget.matrix[0][0] = 1;
-      widget.colors = {accent: colors.accent, fill: colors.fill, border: ColorLibrary.getColor('firstComp','light')};
+      widget.colors = {accent: colors.accent, fill: colors.fill, border: color('firstComp','light')};
       widget.init();
       widget.on('*', function(data) {
         if(data.level===1) {
@@ -266,13 +267,13 @@ angular.module('myApp').controller('SequencerController', ['$scope', '$window', 
     */
     // ------------------------------------------------------------------
 
-    createOptionMatrix (3, {accent: ColorLibrary.getColor('firstComp','light'), fill: ColorLibrary.getColor('second','medium')});
-    createOptionMatrix (2, {accent: ColorLibrary.getColor('firstComp','light'), fill: ColorLibrary.getColor('first','medium')});
-    createOptionMatrix (1, {accent: ColorLibrary.getColor('firstComp','light'), fill: ColorLibrary.getColor('third','medium')});
+    createOptionMatrix (3, {accent: color('firstComp','light'), fill: color('second','medium')});
+    createOptionMatrix (2, {accent: color('firstComp','light'), fill: color('first','medium')});
+    createOptionMatrix (1, {accent: color('firstComp','light'), fill: color('third','medium')});
 
-    createStepMatrix (3, {accent: ColorLibrary.getColor('second','light'), fill: ColorLibrary.getColor('second','dark')});
-    createStepMatrix (2, {accent: ColorLibrary.getColor('first','light'), fill: ColorLibrary.getColor('first','dark')});
-    createStepMatrix (1, {accent: ColorLibrary.getColor('third','light'), fill: ColorLibrary.getColor('third','dark')});
+    createStepMatrix (3, {accent: color('second','light'), fill: color('second','dark')});
+    createStepMatrix (2, {accent: color('first','light'), fill: color('first','dark')});
+    createStepMatrix (1, {accent: color('third','light'), fill: color('third','dark')});
 
     createMatrixToggle(3);
     createMatrixToggle(2);
@@ -297,8 +298,10 @@ angular.module('myApp').controller('SequencerController', ['$scope', '$window', 
 ToDo:
 
 GENERAL:
- - fix the broken page switching
+ - fix the broken page switching (migrate the UI creation functions to a Service, which doesn't die when the view dies)
  - research the best practices for Angular variable naming, and fix up the project
+ - the CSS is messy
+ - there is some kind of memory leak or something slowing it down when the browser is left open for awhile...
 
 FADER:
  - disable the manual fader when the automater is running

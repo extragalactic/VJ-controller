@@ -1,5 +1,5 @@
 
-var VJ_SERVER_IP = "192.168.1.70";
+var VJ_SERVER_IP = "192.168.1.72";
 var VJ_SERVER_PORT = 3300;
 
 (function() {
