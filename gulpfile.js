@@ -14,8 +14,10 @@ var jsSources = [
   'public/js/controllers/sequencerCtrl.js',
   'public/js/controllers/headerCtrl.js',
   'public/js/services/socketFactory.js',
+  'public/js/services/faderManager.js',
+  'public/js/services/sequencerManager.js',
   'public/js/services/assetLibrary.js',
-  'public/js/services/colorLibrary.js',  
+  'public/js/services/colorLibrary.js',
   'public/lib/ng-color-picker/color-picker.js'
 ];
 var htmlSources = [

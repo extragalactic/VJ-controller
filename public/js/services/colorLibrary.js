@@ -1,5 +1,5 @@
 // ColourLibrary contains all the website's colours
-angular.module('myApp').factory('ColorLibrary', function () {
+angular.module('myApp').factory('colorLibrary', function () {
   "use strict";
 
   // set colors
