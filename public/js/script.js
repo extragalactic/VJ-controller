@@ -24444,27 +24444,22 @@ var myApp = angular.module('myApp', [
 // set application 'globals'
 .value('appVars', {
   config: {
-    themeType: 'dark',
-    brushType: 'metabrushLines'
-  },
-  themes: {
-    'light': {backgroundColour: '#fff'},
-    'dark': {backgroundColour: '#000'}
+    test: 'sample'
   }
 })
 .config(['$routeProvider', function ($routeProvider) {
   // ---- init Angular route provider ----
   $routeProvider.
-  when('/controls', {
-    templateUrl: 'partials/controls.html',
-    controller: 'ControlsController'
+  when('/fader', {
+    templateUrl: 'partials/fader.html',
+    controller: 'FaderController'
   }).
   when('/sequencer', {
-    templateUrl: 'partials/controlsSequencer.html',
+    templateUrl: 'partials/sequencer.html',
     controller: 'SequencerController'
   }).
   otherwise({
-    redirectTo: '/controls'
+    redirectTo: '/fader'
   });
 }]);
 
@@ -24494,12 +24489,11 @@ $(document).on('click', '#menuCollapseButton', function (e) {
 });
 
 // ----------------------------------------------------
-// Fader Controls Controller
-//  ...this controller controls the controls on my controller :)
+// Fader Controller
 // ----------------------------------------------------
 
-// Fader Controls Controller
-angular.module('myApp').controller('ControlsController', ['$scope', '$window', '$http', 'socket', 'appVars', 'faderManager', 'colorLibrary', function ($scope, $window, $http, socket, appVars, faderManager, colorLibrary) {
+// Fader Controller
+angular.module('myApp').controller('FaderController', ['$scope', '$window', '$http', 'socket', 'appVars', 'faderManager', 'colorLibrary', function ($scope, $window, $http, socket, appVars, faderManager, colorLibrary) {
   "use strict";
 
   // the onloaded flag for NexusUI is globally set in the index.html file
@@ -24534,6 +24528,7 @@ angular.module('myApp').controller('ControlsController', ['$scope', '$window', '
 
   // remove socket listeners when leaving page (called automatically)
   $scope.$on('$destroy', function (event) {
+    faderManager.cleanUpWidgets();
     socket.removeAllListeners();
   });
 
@@ -24590,6 +24585,8 @@ angular.module('myApp').controller('SequencerController', ['$scope', '$window', 
     sequencerManager.createBankSelectorTabs();
 
     sequencerManager.refreshMatrixView();
+
+    sequencerManager.refreshHiddenWidgets();
   }
 
   // remove socket listeners when leaving page (called automatically)
@@ -24602,14 +24599,13 @@ angular.module('myApp').controller('SequencerController', ['$scope', '$window', 
 ToDo:
 
 GENERAL:
- - fix the broken page switching
  - research the best practices for Angular variable naming, and fix up the project
- - the CSS is super messy and confusing...fix this
- - there is some kind of memory leak or something slowing it down when the browser is left open for awhile...
+ - the CSS is better but still needs some cleanup
+ - must save/restore variable states when switching pages
 
 FADER:
  - disable the manual fader when the automater is running
- - add in Invert and Reverse buttons, place them where the fader currently is, then move the fader to the bottom horizontally
+ - enable the Invert and Reverse buttons
 
 SEQUENCER:
  - add a clip transition-velocity slider
@@ -24630,37 +24626,6 @@ angular.module('myApp').controller('HeaderController', ['$scope', '$http', funct
     return active;
   };
 }]);
-
-var socketio = require('socket.io-client');
-
-angular.module('myApp').factory('socket', function ($rootScope) {
-   var socketPath = "http://" + VJ_SERVER_IP + ":" + VJ_SERVER_PORT;
-   console.log('creating socket connection: ' + socketPath);
-   var socket = socketio.connect(socketPath);
-
-   return {
-     on: function (eventName, callback) {
-         socket.on(eventName, function () {
-             var args = arguments;
-             $rootScope.$apply(function () {
-                 callback.apply(socket, args);
-             });
-         });
-     },
-     emit: function (eventName, data1, data2) {
-       // currently this wrapper supports either 1 or 2 args
-       if(data2===undefined) {
-         socket.emit(eventName, data1);
-       } else {
-         socket.emit(eventName, data1, data2);
-       }
-     },
-     removeAllListeners: function () {
-       socket.removeAllListeners();
-     },
-     id: socket.id
-  };
-});
 
 // Manages the Fader Automation widgets
 angular.module('myApp').factory('faderManager', ['$window', 'socket', 'appVars', 'colorLibrary', function ($window, socket, appVars, colorLibrary) {
@@ -24685,13 +24650,19 @@ angular.module('myApp').factory('faderManager', ['$window', 'socket', 'appVars',
   var color = colorLibrary.getColor; // shortcut
 
   $window.nx.colorize(color('first','light'));
+  $window.nx.colorize("border", color('grey','medium'));
+  $window.nx.colorize("fill", color('first','dark'));
+  $window.nx.colorize("black", "#ffffff");
+  /*
+  $window.nx.colorize(color('first','light'));
   $window.nx.colorize("border", color('firstComp','medium'));
   $window.nx.colorize("fill", color('first','dark'));
   $window.nx.colorize("black", "#ffffff");
-
+*/
   var widget;
+  var widgetList = []; // keep a list of widgets
   var selectedStylePreset = 0;
-  var sliderAnimationCount = 0; // need to monitor this to prevent the microsliders from also animating to a new position when selecting a new preset
+  var sliderAnimationCount = 0;  // need to monitor this to prevent the microsliders from also animating to a new position when selecting a new preset
 
 
   // Private methods -----------------------------------------------------------
@@ -24722,7 +24693,8 @@ angular.module('myApp').factory('faderManager', ['$window', 'socket', 'appVars',
     function handleChange(event) {
       var yPos = event.target.target.y;
       var index = event.target.target.i;
-      $window.nx.widgets.styleModSliders.setSliderValue(index, yPos);
+      var name = 'nexStyleModSliders';
+      $window.nx.widgets[name].setSliderValue(index, yPos);
     }
     function handleComplete() {
       sliderAnimationCount--;
@@ -24739,10 +24711,20 @@ angular.module('myApp').factory('faderManager', ['$window', 'socket', 'appVars',
 
   return {
 
+    // remove all widgets on page (currently no persistent widgets on the fader page)
+    cleanUpWidgets: function() {
+      //console.log('num fader widgets: ' + widgetList.length);
+      for(var i=0; i<widgetList.length; i++) {
+          widgetList[i].widget.destroy();
+      }
+      widgetList.length=0;
+    },
+
     // on/off toggle button
     createOnOffToggle: function () {
-      $window.nx.add("toggle", {name: "faderToggle", parent:"controlOnOff1"});
-      widget = $window.nx.widgets.faderToggle;
+      var name = "nexFaderToggle";
+      $window.nx.add("toggle", {name: name, parent:"baseFaderControls"});
+      widget = $window.nx.widgets[name];
       widget.colors = {accent: color('firstComp','light'), fill: color('offState','medium')};
       widget.init();
 
@@ -24764,71 +24746,79 @@ angular.module('myApp').factory('faderManager', ['$window', 'socket', 'appVars',
           socket.emit('messageOSC', msgOSC_runpos, 0.00001);
         }
       });
+      widgetList.push({widget: widget, name: name, persist: false});
     },
 
     // basic fader
     createMasterFader: function () {
-      $window.nx.add("slider", {name: "faderSlider", parent:"controlOnOff1"});
-      widget = $window.nx.widgets.faderSlider;
+      var name = "nexFaderSlider";
+      $window.nx.add("slider", {name: name, parent:"baseFaderControls"});
+      widget = $window.nx.widgets[name];
       //widget.sliders = 1;
       widget.on('*', function(data) {
         var msgOSC = '/composition/cross/values';
         var val = data.value;
         socket.emit('messageOSC', msgOSC, val);
       });
+      widgetList.push({widget: widget, name: name, persist: false});
     },
 
     // layer opacity faders
     createLayerOpacitySlider: function (n) {
-        var widgetName = "layerSlider" + n;
-        $window.nx.add("slider", {name: widgetName, parent:"controlOnOff1"});
-        widget = $window.nx.widgets[widgetName];
+        var name = "nexLayerSlider" + n;
+        $window.nx.add("slider", {name: name, parent:"baseFaderControls"});
+        widget = $window.nx.widgets[name];
         widget.on('*', function(data) {
           var msgOSC = '/layer' + n + '/video/opacity/values';
           //var val = data.value;
           //socket.emit('messageOSC', msgOSC, val);
         });
+        widgetList.push({widget: widget, name: name, persist: false});
     },
 
     // microslider array
     createMicroSliders: function () {
       for(var i=0; i<faderStylePresets.length; i++) {
-        var sliderName = "microslider"+(i+1);
-        $window.nx.add("multislider", {name: sliderName, parent:"controlsLine0"});
-        widget = $window.nx.widgets[sliderName];
+        var name = "nexMicroslider"+(i+1);
+        $window.nx.add("multislider", {name: name, parent:"presetMicrosliders"});
+        widget = $window.nx.widgets[name];
         widget.sliders = faderStylePresets.length;
         widget.colors = {fill: color('third','dark'), accent: color('third','medium')};
         widget.init();
         for(var j=0; j<faderStylePresets[i].length; j++) {
           widget.setSliderValue(j, faderStylePresets[i][j]);
         }
-        var id = $window.document.getElementById(sliderName);
+        var id = $window.document.getElementById(name);
         id.className = "microsliders";
         //widget.on('*', microSliderClickHandler(data));
         //widget.click = microSliderClickHandler2();
+        widgetList.push({widget: widget, name: name, persist: false});
       }
     },
 
     // beat style preset buttons
     createStylePresets: function () {
-      $window.nx.add("tabs", {name: "beatStyleTabs", parent:"controlTabs1"});
-      widget = $window.nx.widgets.beatStyleTabs;
+      var name = "nexBeatStyleTabs";
+      $window.nx.add("tabs", {name: name, parent:"presetTabs"});
+      widget = $window.nx.widgets[name];
       widget.options = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
       widget.init();
       widget.on('*', function(data) {
         onClickPresetTab(data);
       });
+      widgetList.push({widget: widget, name: name, persist: false});
     },
 
-    // 
+    //
     initSliderPresetSelection: function (presetNum) {
       onClickPresetTab({index: presetNum});
     },
 
     // style modification sliders
     createStyleModSliders: function () {
-      $window.nx.add("multislider", {name: "styleModSliders", parent:"controlsLine2"});
-      widget = $window.nx.widgets.styleModSliders;
+      var name = "nexStyleModSliders";
+      $window.nx.add("multislider", {name: name, parent:"middleFaderControls"});
+      widget = $window.nx.widgets[name];
       widget.sliders = numSteps;
       widget.init();
       widget.on('*', function(data) {
@@ -24836,7 +24826,7 @@ angular.module('myApp').factory('faderManager', ['$window', 'socket', 'appVars',
         if(index >= 0 && index < numSteps) {
           var val = data[index];
           if(sliderAnimationCount===0) {
-            var microsliderName = "microslider"+(selectedStylePreset+1);
+            var microsliderName = "nexMicroslider"+(selectedStylePreset+1);
             $window.nx.widgets[microsliderName].setSliderValue(index, val);
           }
           faderStylePresets[selectedStylePreset][index] = val;
@@ -24844,31 +24834,37 @@ angular.module('myApp').factory('faderManager', ['$window', 'socket', 'appVars',
           socket.emit('messageOSC', msgOSC, val);
         }
       });
+      widgetList.push({widget: widget, name: name, persist: false});
     },
 
     // pattern invert and reverse buttons
     createInvertReverseButtons: function () {
-      $window.nx.add("toggle", {name: "invertToggle", parent:"controlsLine2"});
-      widget = $window.nx.widgets.invertToggle;
+      var name = "nexInvertToggle";
+      $window.nx.add("toggle", {name: name, parent:"middleFaderControls"});
+      widget = $window.nx.widgets[name];
       widget.colors = {accent: color('firstComp','light'), fill: color('offState','medium')};
       widget.init();
       widget.on('*', function(data) {
           // invert slider values
       });
+      widgetList.push({widget: widget, name: name, persist: false});
 
-      $window.nx.add("toggle", {name: "reverseToggle", parent:"controlsLine2"});
-      widget = $window.nx.widgets.reverseToggle;
+      name = "nexReverseToggle";
+      $window.nx.add("toggle", {name: name, parent:"middleFaderControls"});
+      widget = $window.nx.widgets[name];
       widget.colors = {accent: color('firstComp','light'), fill: color('offState','medium')};
       widget.init();
       widget.on('*', function(data) {
           // reverse slider values
       });
+      widgetList.push({widget: widget, name: name, persist: false});
     },
 
     // tempo buttons
     createTempoButtons: function () {
-      $window.nx.add("tabs", {name: "tempoTabs", parent:"controlTabs2"});
-      widget = $window.nx.widgets.tempoTabs;
+      var name = "nexTempoTabs";
+      $window.nx.add("tabs", {name: name, parent:"tempoTabs"});
+      widget = $window.nx.widgets[name];
       widget.options = ["x1", "x2", "x4", "x8", "x16", "x32", "x64"];
       widget.colors = {accent: color('second','medium'), fill: color('second','dark'), white: "#ffffff", black: "#ffffff"};
       //widget.set({index: 2});
@@ -24876,6 +24872,7 @@ angular.module('myApp').factory('faderManager', ['$window', 'socket', 'appVars',
       widget.on('*', function(data) {
         onClickTempoTab(data);
       });
+      widgetList.push({widget: widget, name: name, persist: false});
     }
 
   };
@@ -24916,6 +24913,7 @@ $window.nx.add("select", {parent:"mainDiv"});
 //onClickTempoTab({index: 2});
 //$window.nx.widgets.tempoTabs.init();
 
+// ------------------------------------------------------------
 // Manages the Sequencer widgets
 angular.module('myApp').factory('sequencerManager', ['$window', 'socket', 'appVars', 'colorLibrary', 'assetLibrary', function ($window, socket, appVars, colorLibrary, assetLibrary) {
   "use strict";
@@ -24923,6 +24921,8 @@ angular.module('myApp').factory('sequencerManager', ['$window', 'socket', 'appVa
   var matrixData = [];
   var color = colorLibrary.getColor; // shortcut
   var widgetList = []; // keep a list of widgets
+  var deleteList = [];
+  var persistList = [];
 
   $window.nx.colorize(color('first','light'));
   $window.nx.colorize("border", color('grey','medium'));
@@ -24939,7 +24939,7 @@ angular.module('myApp').factory('sequencerManager', ['$window', 'socket', 'appVa
   var numSequencerBanks = 5;
   var selectedSequencerBank = 0;
 
-  // set order of matrix colors
+  // set order of colors for the 3 matrices
   var interfaceColors = {
     matrixLayer: [
       {accent: color('third','light'), fill: color('third','dark')},
@@ -24974,60 +24974,80 @@ angular.module('myApp').factory('sequencerManager', ['$window', 'socket', 'appVa
     return false;
   }
 
+  // redraw the matrix with the array data
+  function refreshMatrixView() {
+    $window.nx.widgets.nexMatrixLayer3.matrix = matrixData[selectedSequencerBank][0];
+    $window.nx.widgets.nexMatrixLayer3.init();
+    $window.nx.widgets.nexMatrixLayer2.matrix = matrixData[selectedSequencerBank][1];
+    $window.nx.widgets.nexMatrixLayer2.init();
+    $window.nx.widgets.nexMatrixLayer1.matrix = matrixData[selectedSequencerBank][2];
+    $window.nx.widgets.nexMatrixLayer1.init();
+
+    console.log(JSON.stringify(matrixData[selectedSequencerBank]));
+  }
+
   // Public methods ------------------------------------------------------------
 
   return {
 
+    // load the step matrices with values loaded from the assetLibrary
     initMatrixData: function () {
       matrixData = assetLibrary.getMatrixData().matrixData;
+    },
+
+    // use jQuery to swap out the matrix div if there are hidden persistent widgets
+    refreshHiddenWidgets: function() {
+      console.log('num persistent seq widgets: ' + persistList.length);
+
+      if(persistList.length>0) {
+        // swap in the matrices in hidden storage, then change name back to stepMatrix
+        $('#stepMatrix').swap('#stepMatrixHidden');
+        $('#stepMatrix').attr('id', 'hiddenStorage');
+        $('#stepMatrixHidden').attr('id', 'stepMatrix');
+      }
     },
 
     // redraw the cells on the matrices based on the selected data bank
     // (...this is what Angular normally does)
     refreshMatrixView: function () {
-      $window.nx.widgets.matrixLayer3.matrix = matrixData[selectedSequencerBank][0];
-      $window.nx.widgets.matrixLayer3.init();
-      $window.nx.widgets.matrixLayer2.matrix = matrixData[selectedSequencerBank][1];
-      $window.nx.widgets.matrixLayer2.init();
-      $window.nx.widgets.matrixLayer1.matrix = matrixData[selectedSequencerBank][2];
-      $window.nx.widgets.matrixLayer1.init();
-
-      console.log(JSON.stringify(matrixData[selectedSequencerBank]));
+      refreshMatrixView(); // call private function
     },
 
-    // delete all NexusUI widgets, unless they have been flagged as persistent, in which case move/hide the widget off-canvas
+    // delete all NexusUI widgets, unless they have been flagged as persistent, in which case move the widget into the footer and make it invisible (so that it still runs)
     cleanUpWidgets: function() {
-
-      console.log('num widgets: ' + widgetList.length);
-
-      var deleteList = [];
-      var persistList = [];
+      console.log('num seq widgets pre-cleanup: ' + widgetList.length);
+      var obj;
       for(var i=0; i<widgetList.length; i++) {
-        if(widgetList[i].persist===true) {
-          persistList.push(widgetList[i].name);
-        } else {
-          deleteList.push(widgetList[i].name);
+        obj = widgetList[i];
+        if(obj.persist===true && persistList.indexOf(obj.name) === -1) {
+          persistList.push(obj.name);
+        } else if (obj.persist===false) {
+          deleteList.push(obj.name);
         }
       }
       for(var j=0; j<widgetList.length; j++) {
-        var obj = widgetList[j];
+        obj = widgetList[j];
         if(deleteList.indexOf(obj.name) !== -1) {
-          widgetList[j].widget.destroy();
+          obj.widget.destroy();
           widgetList.splice(j,1);
           j--;
         } else if(persistList.indexOf(obj.name) !== -1) {
-          // somehow hide or move off-screen
+          // hide widget and move into the footer for storage
+          document.getElementById(obj.name).style.visibility = "hidden";
         }
       }
-      console.log('num widgets: ' + widgetList.length);
+      console.log('num seq widgets post-cleanup: ' + widgetList.length);
 
+      // swap out the matrices into hidden storage, then rename it
+      $('#stepMatrix').swap('#hiddenStorage');
+      $('#stepMatrix').attr('id', 'stepMatrixHidden');
     },
 
     // sequencer on/off toggle button
     createOnOffToggle: function () {
-      var name = "sequencerToggle";
+      var name = "nexSequencerToggle";
       $window.nx.add("toggle", {name: name, parent:"rightControls"});
-      widget = $window.nx.widgets.sequencerToggle;
+      widget = $window.nx.widgets[name];
       widget.colors = {accent: color('firstComp','light'), fill: color('offState','medium')};
       widget.init();
       widget.on('*', function(data) {
@@ -25044,9 +25064,9 @@ angular.module('myApp').factory('sequencerManager', ['$window', 'socket', 'appVa
 
     // BPM control widget
     createBPMControl: function () {
-      var name = "sequencerBPM";
+      var name = "nexSequencerBPM";
       $window.nx.add("number", {name: name, parent:"rightControls"});
-      widget = $window.nx.widgets.sequencerBPM;
+      widget = $window.nx.widgets[name];
       widget.min = 0;
       widget.max = 500;
       widget.set({ value: sequencerBPM });
@@ -25062,9 +25082,9 @@ angular.module('myApp').factory('sequencerManager', ['$window', 'socket', 'appVa
 
     // BPM multiplier tabs
     createBPMMultiplierTabs: function () {
-      var name = "tempoMultiplierTabs";
+      var name ="nexTempoMultiplierTabs";
       $window.nx.add("tabs", {name: name, parent:"rightControls"});
-      widget = $window.nx.widgets.tempoMultiplierTabs;
+      widget = $window.nx.widgets[name];
       widget.options = ["x1", "x2", "x4", "x8"];
       widget.init();
       widget.on('*', function(data) {
@@ -25079,9 +25099,9 @@ angular.module('myApp').factory('sequencerManager', ['$window', 'socket', 'appVa
 
     // re-sync sequencer button
     createResyncButton: function () {
-      var name = "resyncButton";
+      var name = "nexResyncButton";
       $window.nx.add("multitouch", {name: name, parent:"rightControls"});
-      widget = $window.nx.widgets.resyncButton;
+      widget = $window.nx.widgets[name];
       widget.colors = {accent: color('firstComp','light'), fill: color('firstComp','dark')};
       widget.init();
       widget.on('*', function(data) {
@@ -25095,7 +25115,7 @@ angular.module('myApp').factory('sequencerManager', ['$window', 'socket', 'appVa
     // toggle each individual matrix (for FX, Layer1 & Layer2)
     createMatrixToggle: function (n) {
       // matrix on/off toggle button
-      var name = "matrixToggle" + n;
+      var name = "nexMatrixToggle" + n;
       $window.nx.add("toggle", {name: name, parent:"matrixToggleControls"});
       widget = $window.nx.widgets[name];
       widget.colors = {accent: interfaceColors.matrixLayer[n-1].accent, fill: color('offState','medium'), border: color('grey','medium'), black: color('grey','medium'), white: color('grey','medium')};
@@ -25126,9 +25146,9 @@ angular.module('myApp').factory('sequencerManager', ['$window', 'socket', 'appVa
 
     // create bank selector tabs
     createBankSelectorTabs: function () {
-      var name = "bankSelectorTabs";
+      var name = "nexBankSelectorTabs";
       $window.nx.add("tabs", {name: name, parent:"bottomControls"});
-      widget = $window.nx.widgets.bankSelectorTabs;
+      widget = $window.nx.widgets[name];
       widget.options = ["1", "2", "3", "4", "5"];
       widget.init();
       widget.on('*', function(data) {
@@ -25140,9 +25160,10 @@ angular.module('myApp').factory('sequencerManager', ['$window', 'socket', 'appVa
 
     // create a 16x4 clip sequencer matrix
     createStepMatrix: function (sequencerNum, colors) {
-      var name = "matrixLayer" + sequencerNum;
+      var name = "nexMatrixLayer" + sequencerNum;
       if(checkPersistent(name)) {
         // widget already exists, so don't create it, but instead reveal it
+        document.getElementById(name).style.visibility = "visible";
       } else {
         $window.nx.add("matrix", {name: name, parent:"stepMatrix"});
         var widget = $window.nx.widgets[name];
@@ -25185,7 +25206,7 @@ angular.module('myApp').factory('sequencerManager', ['$window', 'socket', 'appVa
 
     // create a 1x3 clip bank matrix
     createOptionMatrix: function (sequencerNum, colors) {
-      var name = "matrixOptions" + sequencerNum;
+      var name = "nexMatrixOptions" + sequencerNum;
       $window.nx.add("matrix", {name: name, parent:"optionMatrix"});
       var widget = $window.nx.widgets[name];
       widget.col = 1;
@@ -25311,6 +25332,55 @@ angular.module('myApp').factory('colorLibrary', function () {
   };
 
 });
+
+var socketio = require('socket.io-client');
+
+angular.module('myApp').factory('socket', function ($rootScope) {
+   var socketPath = "http://" + VJ_SERVER_IP + ":" + VJ_SERVER_PORT;
+   console.log('creating socket connection: ' + socketPath);
+   var socket = socketio.connect(socketPath);
+
+   return {
+     on: function (eventName, callback) {
+         socket.on(eventName, function () {
+             var args = arguments;
+             $rootScope.$apply(function () {
+                 callback.apply(socket, args);
+             });
+         });
+     },
+     emit: function (eventName, data1, data2) {
+       // currently this wrapper supports either 1 or 2 args
+       if(data2===undefined) {
+         socket.emit(eventName, data1);
+       } else {
+         socket.emit(eventName, data1, data2);
+       }
+     },
+     removeAllListeners: function () {
+       socket.removeAllListeners();
+     },
+     id: socket.id
+  };
+});
+
+// Adds an extra utility function for jQuery
+global.jQuery = $ = require('jquery');
+
+// this function swaps 2 divs on the page
+jQuery.fn.swap = function(b){
+  b = jQuery(b)[0];
+  if(b===undefined) {
+    console.warn('Div for jQuery.swap is not defined');
+    return;
+  }
+  var a = this[0];
+  var t = a.parentNode.insertBefore(document.createTextNode(''), a);
+  b.parentNode.insertBefore(a, b);
+  t.parentNode.insertBefore(b, t);
+  t.parentNode.removeChild(t);
+  return this;
+};
 
 angular.module('ngColorPicker', [])
 .provider('ngColorPickerConfig', function(){

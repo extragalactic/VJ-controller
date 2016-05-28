@@ -1,10 +1,9 @@
 // ----------------------------------------------------
-// Fader Controls Controller
-//  ...this controller controls the controls on my controller :)
+// Fader Controller
 // ----------------------------------------------------
 
-// Fader Controls Controller
-angular.module('myApp').controller('ControlsController', ['$scope', '$window', '$http', 'socket', 'appVars', 'faderManager', 'colorLibrary', function ($scope, $window, $http, socket, appVars, faderManager, colorLibrary) {
+// Fader Controller
+angular.module('myApp').controller('FaderController', ['$scope', '$window', '$http', 'socket', 'appVars', 'faderManager', 'colorLibrary', function ($scope, $window, $http, socket, appVars, faderManager, colorLibrary) {
   "use strict";
 
   // the onloaded flag for NexusUI is globally set in the index.html file
@@ -39,6 +38,7 @@ angular.module('myApp').controller('ControlsController', ['$scope', '$window', '
 
   // remove socket listeners when leaving page (called automatically)
   $scope.$on('$destroy', function (event) {
+    faderManager.cleanUpWidgets();
     socket.removeAllListeners();
   });
 

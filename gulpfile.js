@@ -10,14 +10,15 @@ var gulp = require('gulp'),
 // list source files
 var jsSources = [
   'public/js/app.js',
-  'public/js/controllers/controlsCtrl.js',
+  'public/js/controllers/faderCtrl.js',
   'public/js/controllers/sequencerCtrl.js',
   'public/js/controllers/headerCtrl.js',
-  'public/js/services/socketFactory.js',
   'public/js/services/faderManager.js',
   'public/js/services/sequencerManager.js',
   'public/js/services/assetLibrary.js',
   'public/js/services/colorLibrary.js',
+  'public/js/services/socketFactory.js',  
+  'public/js/modules/jquery-extend.js',
   'public/lib/ng-color-picker/color-picker.js'
 ];
 var htmlSources = [

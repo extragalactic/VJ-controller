@@ -1,3 +1,4 @@
+// ------------------------------------------------------------
 // Manages the Sequencer widgets
 angular.module('myApp').factory('sequencerManager', ['$window', 'socket', 'appVars', 'colorLibrary', 'assetLibrary', function ($window, socket, appVars, colorLibrary, assetLibrary) {
   "use strict";
@@ -5,6 +6,8 @@ angular.module('myApp').factory('sequencerManager', ['$window', 'socket', 'appVa
   var matrixData = [];
   var color = colorLibrary.getColor; // shortcut
   var widgetList = []; // keep a list of widgets
+  var deleteList = [];
+  var persistList = [];
 
   $window.nx.colorize(color('first','light'));
   $window.nx.colorize("border", color('grey','medium'));
@@ -21,7 +24,7 @@ angular.module('myApp').factory('sequencerManager', ['$window', 'socket', 'appVa
   var numSequencerBanks = 5;
   var selectedSequencerBank = 0;
 
-  // set order of matrix colors
+  // set order of colors for the 3 matrices
   var interfaceColors = {
     matrixLayer: [
       {accent: color('third','light'), fill: color('third','dark')},
@@ -56,60 +59,80 @@ angular.module('myApp').factory('sequencerManager', ['$window', 'socket', 'appVa
     return false;
   }
 
+  // redraw the matrix with the array data
+  function refreshMatrixView() {
+    $window.nx.widgets.nexMatrixLayer3.matrix = matrixData[selectedSequencerBank][0];
+    $window.nx.widgets.nexMatrixLayer3.init();
+    $window.nx.widgets.nexMatrixLayer2.matrix = matrixData[selectedSequencerBank][1];
+    $window.nx.widgets.nexMatrixLayer2.init();
+    $window.nx.widgets.nexMatrixLayer1.matrix = matrixData[selectedSequencerBank][2];
+    $window.nx.widgets.nexMatrixLayer1.init();
+
+    console.log(JSON.stringify(matrixData[selectedSequencerBank]));
+  }
+
   // Public methods ------------------------------------------------------------
 
   return {
 
+    // load the step matrices with values loaded from the assetLibrary
     initMatrixData: function () {
       matrixData = assetLibrary.getMatrixData().matrixData;
+    },
+
+    // use jQuery to swap out the matrix div if there are hidden persistent widgets
+    refreshHiddenWidgets: function() {
+      console.log('num persistent seq widgets: ' + persistList.length);
+
+      if(persistList.length>0) {
+        // swap in the matrices in hidden storage, then change name back to stepMatrix
+        $('#stepMatrix').swap('#stepMatrixHidden');
+        $('#stepMatrix').attr('id', 'hiddenStorage');
+        $('#stepMatrixHidden').attr('id', 'stepMatrix');
+      }
     },
 
     // redraw the cells on the matrices based on the selected data bank
     // (...this is what Angular normally does)
     refreshMatrixView: function () {
-      $window.nx.widgets.matrixLayer3.matrix = matrixData[selectedSequencerBank][0];
-      $window.nx.widgets.matrixLayer3.init();
-      $window.nx.widgets.matrixLayer2.matrix = matrixData[selectedSequencerBank][1];
-      $window.nx.widgets.matrixLayer2.init();
-      $window.nx.widgets.matrixLayer1.matrix = matrixData[selectedSequencerBank][2];
-      $window.nx.widgets.matrixLayer1.init();
-
-      console.log(JSON.stringify(matrixData[selectedSequencerBank]));
+      refreshMatrixView(); // call private function
     },
 
-    // delete all NexusUI widgets, unless they have been flagged as persistent, in which case move/hide the widget off-canvas
+    // delete all NexusUI widgets, unless they have been flagged as persistent, in which case move the widget into the footer and make it invisible (so that it still runs)
     cleanUpWidgets: function() {
-
-      console.log('num widgets: ' + widgetList.length);
-
-      var deleteList = [];
-      var persistList = [];
+      console.log('num seq widgets pre-cleanup: ' + widgetList.length);
+      var obj;
       for(var i=0; i<widgetList.length; i++) {
-        if(widgetList[i].persist===true) {
-          persistList.push(widgetList[i].name);
-        } else {
-          deleteList.push(widgetList[i].name);
+        obj = widgetList[i];
+        if(obj.persist===true && persistList.indexOf(obj.name) === -1) {
+          persistList.push(obj.name);
+        } else if (obj.persist===false) {
+          deleteList.push(obj.name);
         }
       }
       for(var j=0; j<widgetList.length; j++) {
-        var obj = widgetList[j];
+        obj = widgetList[j];
         if(deleteList.indexOf(obj.name) !== -1) {
-          widgetList[j].widget.destroy();
+          obj.widget.destroy();
           widgetList.splice(j,1);
           j--;
         } else if(persistList.indexOf(obj.name) !== -1) {
-          // somehow hide or move off-screen
+          // hide widget and move into the footer for storage
+          document.getElementById(obj.name).style.visibility = "hidden";
         }
       }
-      console.log('num widgets: ' + widgetList.length);
+      console.log('num seq widgets post-cleanup: ' + widgetList.length);
 
+      // swap out the matrices into hidden storage, then rename it
+      $('#stepMatrix').swap('#hiddenStorage');
+      $('#stepMatrix').attr('id', 'stepMatrixHidden');
     },
 
     // sequencer on/off toggle button
     createOnOffToggle: function () {
-      var name = "sequencerToggle";
+      var name = "nexSequencerToggle";
       $window.nx.add("toggle", {name: name, parent:"rightControls"});
-      widget = $window.nx.widgets.sequencerToggle;
+      widget = $window.nx.widgets[name];
       widget.colors = {accent: color('firstComp','light'), fill: color('offState','medium')};
       widget.init();
       widget.on('*', function(data) {
@@ -126,9 +149,9 @@ angular.module('myApp').factory('sequencerManager', ['$window', 'socket', 'appVa
 
     // BPM control widget
     createBPMControl: function () {
-      var name = "sequencerBPM";
+      var name = "nexSequencerBPM";
       $window.nx.add("number", {name: name, parent:"rightControls"});
-      widget = $window.nx.widgets.sequencerBPM;
+      widget = $window.nx.widgets[name];
       widget.min = 0;
       widget.max = 500;
       widget.set({ value: sequencerBPM });
@@ -144,9 +167,9 @@ angular.module('myApp').factory('sequencerManager', ['$window', 'socket', 'appVa
 
     // BPM multiplier tabs
     createBPMMultiplierTabs: function () {
-      var name = "tempoMultiplierTabs";
+      var name ="nexTempoMultiplierTabs";
       $window.nx.add("tabs", {name: name, parent:"rightControls"});
-      widget = $window.nx.widgets.tempoMultiplierTabs;
+      widget = $window.nx.widgets[name];
       widget.options = ["x1", "x2", "x4", "x8"];
       widget.init();
       widget.on('*', function(data) {
@@ -161,9 +184,9 @@ angular.module('myApp').factory('sequencerManager', ['$window', 'socket', 'appVa
 
     // re-sync sequencer button
     createResyncButton: function () {
-      var name = "resyncButton";
+      var name = "nexResyncButton";
       $window.nx.add("multitouch", {name: name, parent:"rightControls"});
-      widget = $window.nx.widgets.resyncButton;
+      widget = $window.nx.widgets[name];
       widget.colors = {accent: color('firstComp','light'), fill: color('firstComp','dark')};
       widget.init();
       widget.on('*', function(data) {
@@ -177,7 +200,7 @@ angular.module('myApp').factory('sequencerManager', ['$window', 'socket', 'appVa
     // toggle each individual matrix (for FX, Layer1 & Layer2)
     createMatrixToggle: function (n) {
       // matrix on/off toggle button
-      var name = "matrixToggle" + n;
+      var name = "nexMatrixToggle" + n;
       $window.nx.add("toggle", {name: name, parent:"matrixToggleControls"});
       widget = $window.nx.widgets[name];
       widget.colors = {accent: interfaceColors.matrixLayer[n-1].accent, fill: color('offState','medium'), border: color('grey','medium'), black: color('grey','medium'), white: color('grey','medium')};
@@ -208,9 +231,9 @@ angular.module('myApp').factory('sequencerManager', ['$window', 'socket', 'appVa
 
     // create bank selector tabs
     createBankSelectorTabs: function () {
-      var name = "bankSelectorTabs";
+      var name = "nexBankSelectorTabs";
       $window.nx.add("tabs", {name: name, parent:"bottomControls"});
-      widget = $window.nx.widgets.bankSelectorTabs;
+      widget = $window.nx.widgets[name];
       widget.options = ["1", "2", "3", "4", "5"];
       widget.init();
       widget.on('*', function(data) {
@@ -222,9 +245,10 @@ angular.module('myApp').factory('sequencerManager', ['$window', 'socket', 'appVa
 
     // create a 16x4 clip sequencer matrix
     createStepMatrix: function (sequencerNum, colors) {
-      var name = "matrixLayer" + sequencerNum;
+      var name = "nexMatrixLayer" + sequencerNum;
       if(checkPersistent(name)) {
         // widget already exists, so don't create it, but instead reveal it
+        document.getElementById(name).style.visibility = "visible";
       } else {
         $window.nx.add("matrix", {name: name, parent:"stepMatrix"});
         var widget = $window.nx.widgets[name];
@@ -267,7 +291,7 @@ angular.module('myApp').factory('sequencerManager', ['$window', 'socket', 'appVa
 
     // create a 1x3 clip bank matrix
     createOptionMatrix: function (sequencerNum, colors) {
-      var name = "matrixOptions" + sequencerNum;
+      var name = "nexMatrixOptions" + sequencerNum;
       $window.nx.add("matrix", {name: name, parent:"optionMatrix"});
       var widget = $window.nx.widgets[name];
       widget.col = 1;

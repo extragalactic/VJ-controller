@@ -21,13 +21,19 @@ angular.module('myApp').factory('faderManager', ['$window', 'socket', 'appVars',
   var color = colorLibrary.getColor; // shortcut
 
   $window.nx.colorize(color('first','light'));
+  $window.nx.colorize("border", color('grey','medium'));
+  $window.nx.colorize("fill", color('first','dark'));
+  $window.nx.colorize("black", "#ffffff");
+  /*
+  $window.nx.colorize(color('first','light'));
   $window.nx.colorize("border", color('firstComp','medium'));
   $window.nx.colorize("fill", color('first','dark'));
   $window.nx.colorize("black", "#ffffff");
-
+*/
   var widget;
+  var widgetList = []; // keep a list of widgets
   var selectedStylePreset = 0;
-  var sliderAnimationCount = 0; // need to monitor this to prevent the microsliders from also animating to a new position when selecting a new preset
+  var sliderAnimationCount = 0;  // need to monitor this to prevent the microsliders from also animating to a new position when selecting a new preset
 
 
   // Private methods -----------------------------------------------------------
@@ -58,7 +64,8 @@ angular.module('myApp').factory('faderManager', ['$window', 'socket', 'appVars',
     function handleChange(event) {
       var yPos = event.target.target.y;
       var index = event.target.target.i;
-      $window.nx.widgets.styleModSliders.setSliderValue(index, yPos);
+      var name = 'nexStyleModSliders';
+      $window.nx.widgets[name].setSliderValue(index, yPos);
     }
     function handleComplete() {
       sliderAnimationCount--;
@@ -75,10 +82,20 @@ angular.module('myApp').factory('faderManager', ['$window', 'socket', 'appVars',
 
   return {
 
+    // remove all widgets on page (currently no persistent widgets on the fader page)
+    cleanUpWidgets: function() {
+      //console.log('num fader widgets: ' + widgetList.length);
+      for(var i=0; i<widgetList.length; i++) {
+          widgetList[i].widget.destroy();
+      }
+      widgetList.length=0;
+    },
+
     // on/off toggle button
     createOnOffToggle: function () {
-      $window.nx.add("toggle", {name: "faderToggle", parent:"controlOnOff1"});
-      widget = $window.nx.widgets.faderToggle;
+      var name = "nexFaderToggle";
+      $window.nx.add("toggle", {name: name, parent:"baseFaderControls"});
+      widget = $window.nx.widgets[name];
       widget.colors = {accent: color('firstComp','light'), fill: color('offState','medium')};
       widget.init();
 
@@ -100,71 +117,79 @@ angular.module('myApp').factory('faderManager', ['$window', 'socket', 'appVars',
           socket.emit('messageOSC', msgOSC_runpos, 0.00001);
         }
       });
+      widgetList.push({widget: widget, name: name, persist: false});
     },
 
     // basic fader
     createMasterFader: function () {
-      $window.nx.add("slider", {name: "faderSlider", parent:"controlOnOff1"});
-      widget = $window.nx.widgets.faderSlider;
+      var name = "nexFaderSlider";
+      $window.nx.add("slider", {name: name, parent:"baseFaderControls"});
+      widget = $window.nx.widgets[name];
       //widget.sliders = 1;
       widget.on('*', function(data) {
         var msgOSC = '/composition/cross/values';
         var val = data.value;
         socket.emit('messageOSC', msgOSC, val);
       });
+      widgetList.push({widget: widget, name: name, persist: false});
     },
 
     // layer opacity faders
     createLayerOpacitySlider: function (n) {
-        var widgetName = "layerSlider" + n;
-        $window.nx.add("slider", {name: widgetName, parent:"controlOnOff1"});
-        widget = $window.nx.widgets[widgetName];
+        var name = "nexLayerSlider" + n;
+        $window.nx.add("slider", {name: name, parent:"baseFaderControls"});
+        widget = $window.nx.widgets[name];
         widget.on('*', function(data) {
           var msgOSC = '/layer' + n + '/video/opacity/values';
           //var val = data.value;
           //socket.emit('messageOSC', msgOSC, val);
         });
+        widgetList.push({widget: widget, name: name, persist: false});
     },
 
     // microslider array
     createMicroSliders: function () {
       for(var i=0; i<faderStylePresets.length; i++) {
-        var sliderName = "microslider"+(i+1);
-        $window.nx.add("multislider", {name: sliderName, parent:"controlsLine0"});
-        widget = $window.nx.widgets[sliderName];
+        var name = "nexMicroslider"+(i+1);
+        $window.nx.add("multislider", {name: name, parent:"presetMicrosliders"});
+        widget = $window.nx.widgets[name];
         widget.sliders = faderStylePresets.length;
         widget.colors = {fill: color('third','dark'), accent: color('third','medium')};
         widget.init();
         for(var j=0; j<faderStylePresets[i].length; j++) {
           widget.setSliderValue(j, faderStylePresets[i][j]);
         }
-        var id = $window.document.getElementById(sliderName);
+        var id = $window.document.getElementById(name);
         id.className = "microsliders";
         //widget.on('*', microSliderClickHandler(data));
         //widget.click = microSliderClickHandler2();
+        widgetList.push({widget: widget, name: name, persist: false});
       }
     },
 
     // beat style preset buttons
     createStylePresets: function () {
-      $window.nx.add("tabs", {name: "beatStyleTabs", parent:"controlTabs1"});
-      widget = $window.nx.widgets.beatStyleTabs;
+      var name = "nexBeatStyleTabs";
+      $window.nx.add("tabs", {name: name, parent:"presetTabs"});
+      widget = $window.nx.widgets[name];
       widget.options = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
       widget.init();
       widget.on('*', function(data) {
         onClickPresetTab(data);
       });
+      widgetList.push({widget: widget, name: name, persist: false});
     },
 
-    // 
+    //
     initSliderPresetSelection: function (presetNum) {
       onClickPresetTab({index: presetNum});
     },
 
     // style modification sliders
     createStyleModSliders: function () {
-      $window.nx.add("multislider", {name: "styleModSliders", parent:"controlsLine2"});
-      widget = $window.nx.widgets.styleModSliders;
+      var name = "nexStyleModSliders";
+      $window.nx.add("multislider", {name: name, parent:"middleFaderControls"});
+      widget = $window.nx.widgets[name];
       widget.sliders = numSteps;
       widget.init();
       widget.on('*', function(data) {
@@ -172,7 +197,7 @@ angular.module('myApp').factory('faderManager', ['$window', 'socket', 'appVars',
         if(index >= 0 && index < numSteps) {
           var val = data[index];
           if(sliderAnimationCount===0) {
-            var microsliderName = "microslider"+(selectedStylePreset+1);
+            var microsliderName = "nexMicroslider"+(selectedStylePreset+1);
             $window.nx.widgets[microsliderName].setSliderValue(index, val);
           }
           faderStylePresets[selectedStylePreset][index] = val;
@@ -180,31 +205,37 @@ angular.module('myApp').factory('faderManager', ['$window', 'socket', 'appVars',
           socket.emit('messageOSC', msgOSC, val);
         }
       });
+      widgetList.push({widget: widget, name: name, persist: false});
     },
 
     // pattern invert and reverse buttons
     createInvertReverseButtons: function () {
-      $window.nx.add("toggle", {name: "invertToggle", parent:"controlsLine2"});
-      widget = $window.nx.widgets.invertToggle;
+      var name = "nexInvertToggle";
+      $window.nx.add("toggle", {name: name, parent:"middleFaderControls"});
+      widget = $window.nx.widgets[name];
       widget.colors = {accent: color('firstComp','light'), fill: color('offState','medium')};
       widget.init();
       widget.on('*', function(data) {
           // invert slider values
       });
+      widgetList.push({widget: widget, name: name, persist: false});
 
-      $window.nx.add("toggle", {name: "reverseToggle", parent:"controlsLine2"});
-      widget = $window.nx.widgets.reverseToggle;
+      name = "nexReverseToggle";
+      $window.nx.add("toggle", {name: name, parent:"middleFaderControls"});
+      widget = $window.nx.widgets[name];
       widget.colors = {accent: color('firstComp','light'), fill: color('offState','medium')};
       widget.init();
       widget.on('*', function(data) {
           // reverse slider values
       });
+      widgetList.push({widget: widget, name: name, persist: false});
     },
 
     // tempo buttons
     createTempoButtons: function () {
-      $window.nx.add("tabs", {name: "tempoTabs", parent:"controlTabs2"});
-      widget = $window.nx.widgets.tempoTabs;
+      var name = "nexTempoTabs";
+      $window.nx.add("tabs", {name: name, parent:"tempoTabs"});
+      widget = $window.nx.widgets[name];
       widget.options = ["x1", "x2", "x4", "x8", "x16", "x32", "x64"];
       widget.colors = {accent: color('second','medium'), fill: color('second','dark'), white: "#ffffff", black: "#ffffff"};
       //widget.set({index: 2});
@@ -212,6 +243,7 @@ angular.module('myApp').factory('faderManager', ['$window', 'socket', 'appVars',
       widget.on('*', function(data) {
         onClickTempoTab(data);
       });
+      widgetList.push({widget: widget, name: name, persist: false});
     }
 
   };

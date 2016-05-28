@@ -37,6 +37,8 @@ angular.module('myApp').controller('SequencerController', ['$scope', '$window', 
     sequencerManager.createBankSelectorTabs();
 
     sequencerManager.refreshMatrixView();
+
+    sequencerManager.refreshHiddenWidgets();
   }
 
   // remove socket listeners when leaving page (called automatically)
@@ -49,14 +51,13 @@ angular.module('myApp').controller('SequencerController', ['$scope', '$window', 
 ToDo:
 
 GENERAL:
- - fix the broken page switching
  - research the best practices for Angular variable naming, and fix up the project
- - the CSS is super messy and confusing...fix this
- - there is some kind of memory leak or something slowing it down when the browser is left open for awhile...
+ - the CSS is better but still needs some cleanup
+ - must save/restore variable states when switching pages
 
 FADER:
  - disable the manual fader when the automater is running
- - add in Invert and Reverse buttons, place them where the fader currently is, then move the fader to the bottom horizontally
+ - enable the Invert and Reverse buttons
 
 SEQUENCER:
  - add a clip transition-velocity slider

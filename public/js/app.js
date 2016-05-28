@@ -19,27 +19,22 @@ var myApp = angular.module('myApp', [
 // set application 'globals'
 .value('appVars', {
   config: {
-    themeType: 'dark',
-    brushType: 'metabrushLines'
-  },
-  themes: {
-    'light': {backgroundColour: '#fff'},
-    'dark': {backgroundColour: '#000'}
+    test: 'sample'
   }
 })
 .config(['$routeProvider', function ($routeProvider) {
   // ---- init Angular route provider ----
   $routeProvider.
-  when('/controls', {
-    templateUrl: 'partials/controls.html',
-    controller: 'ControlsController'
+  when('/fader', {
+    templateUrl: 'partials/fader.html',
+    controller: 'FaderController'
   }).
   when('/sequencer', {
-    templateUrl: 'partials/controlsSequencer.html',
+    templateUrl: 'partials/sequencer.html',
     controller: 'SequencerController'
   }).
   otherwise({
-    redirectTo: '/controls'
+    redirectTo: '/fader'
   });
 }]);
 
