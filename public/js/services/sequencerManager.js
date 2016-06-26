@@ -4,15 +4,10 @@ angular.module('myApp').factory('sequencerManager', ['$window', 'socket', 'appVa
   "use strict";
 
   var matrixData = [];
-  var color = colorLibrary.getColor; // shortcut
+  var color = colorLibrary.getColor; // shortcut variable to colors
   var widgetList = []; // keep a list of widgets
-  var deleteList = [];
-  var persistList = [];
-
-  $window.nx.colorize(color('first','light'));
-  $window.nx.colorize("border", color('grey','medium'));
-  $window.nx.colorize("fill", color('first','dark'));
-  $window.nx.colorize("black", "#ffffff");
+  var deleteList = []; // widgets that get deleted with switching pages
+  var persistList = []; // widgets that are kept in a hidden DIV
 
   var widget; // resuable widget var
   var bSequencerActive = false;
@@ -21,7 +16,7 @@ angular.module('myApp').factory('sequencerManager', ['$window', 'socket', 'appVa
   var clipBankNum = [0,0,0]; // values: 0-2
   var tempoMultiplier = 1; // 1, 2, 4 etc.
 
-  var numSequencerBanks = 5;
+  //var numSequencerBanks = 6;
   var selectedSequencerBank = 0;
 
   // set order of colors for the 3 matrices
@@ -49,7 +44,7 @@ angular.module('myApp').factory('sequencerManager', ['$window', 'socket', 'appVa
 
   // Private methods ------------------------------------------------------------
 
-  // check if the widget exists
+  // check if a NexusUI widget exists
   function checkPersistent(name) {
     for(var i=0; i<widgetList.length; i++) {
       if(name===widgetList[i].name) {
@@ -158,9 +153,9 @@ angular.module('myApp').factory('sequencerManager', ['$window', 'socket', 'appVa
       widget.init();
       widget.on('*', function(data) {
         sequencerBPM = data.value;
-        $window.nx.widgets.matrixLayer1.sequence(sequencerBPM*tempoMultiplier);
-        $window.nx.widgets.matrixLayer2.sequence(sequencerBPM*tempoMultiplier);
-        $window.nx.widgets.matrixLayer3.sequence(sequencerBPM*tempoMultiplier);
+        $window.nx.widgets.nexMatrixLayer1.sequence(sequencerBPM*tempoMultiplier);
+        $window.nx.widgets.nexMatrixLayer2.sequence(sequencerBPM*tempoMultiplier);
+        $window.nx.widgets.nexMatrixLayer3.sequence(sequencerBPM*tempoMultiplier);
       });
       widgetList.push({widget: widget, name: name, persist: false});
     },
@@ -175,9 +170,9 @@ angular.module('myApp').factory('sequencerManager', ['$window', 'socket', 'appVa
       widget.on('*', function(data) {
         var tempos = [1,2,4,8];
         tempoMultiplier = tempos[data.index];
-        $window.nx.widgets.matrixLayer1.sequence(sequencerBPM*tempoMultiplier);
-        $window.nx.widgets.matrixLayer2.sequence(sequencerBPM*tempoMultiplier);
-        $window.nx.widgets.matrixLayer3.sequence(sequencerBPM*tempoMultiplier);
+        $window.nx.widgets.nexMatrixLayer1.sequence(sequencerBPM*tempoMultiplier);
+        $window.nx.widgets.nexMatrixLayer2.sequence(sequencerBPM*tempoMultiplier);
+        $window.nx.widgets.nexMatrixLayer3.sequence(sequencerBPM*tempoMultiplier);
       });
       widgetList.push({widget: widget, name: name, persist: false});
     },
@@ -190,9 +185,9 @@ angular.module('myApp').factory('sequencerManager', ['$window', 'socket', 'appVa
       widget.colors = {accent: color('firstComp','light'), fill: color('firstComp','dark')};
       widget.init();
       widget.on('*', function(data) {
-        $window.nx.widgets.matrixLayer1.jumpToCol(0);
-        $window.nx.widgets.matrixLayer2.jumpToCol(0);
-        $window.nx.widgets.matrixLayer3.jumpToCol(0);
+        $window.nx.widgets.nexMatrixLayer1.jumpToCol(0);
+        $window.nx.widgets.nexMatrixLayer2.jumpToCol(0);
+        $window.nx.widgets.nexMatrixLayer3.jumpToCol(0);
       });
       widgetList.push({widget: widget, name: name, persist: false});
     },
@@ -234,7 +229,7 @@ angular.module('myApp').factory('sequencerManager', ['$window', 'socket', 'appVa
       var name = "nexBankSelectorTabs";
       $window.nx.add("tabs", {name: name, parent:"bottomControls"});
       widget = $window.nx.widgets[name];
-      widget.options = ["1", "2", "3", "4", "5"];
+      widget.options = ["1", "2", "3", "4", "5", "6"];
       widget.init();
       widget.on('*', function(data) {
         selectedSequencerBank = data.index;
@@ -330,6 +325,8 @@ angular.module('myApp').factory('sequencerManager', ['$window', 'socket', 'appVa
 }]);
 
 /*
+// an example of interating over a multi-dimensional array
+
 function initMatrixData() {
   matrixData = new Array(numSequencerBanks);
   for(var x=0; x < numSequencerBanks; x++) {

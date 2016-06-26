@@ -20,16 +20,6 @@ angular.module('myApp').factory('faderManager', ['$window', 'socket', 'appVars',
 
   var color = colorLibrary.getColor; // shortcut
 
-  $window.nx.colorize(color('first','light'));
-  $window.nx.colorize("border", color('grey','medium'));
-  $window.nx.colorize("fill", color('first','dark'));
-  $window.nx.colorize("black", "#ffffff");
-  /*
-  $window.nx.colorize(color('first','light'));
-  $window.nx.colorize("border", color('firstComp','medium'));
-  $window.nx.colorize("fill", color('first','dark'));
-  $window.nx.colorize("black", "#ffffff");
-*/
   var widget;
   var widgetList = []; // keep a list of widgets
   var selectedStylePreset = 0;

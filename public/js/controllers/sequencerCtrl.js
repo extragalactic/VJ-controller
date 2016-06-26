@@ -4,13 +4,22 @@
 angular.module('myApp').controller('SequencerController', ['$scope', '$window', '$http', 'socket', 'appVars', 'sequencerManager', 'colorLibrary', 'assetLibrary', function ($scope, $window, $http, socket, appVars, sequencerManager, colorLibrary, assetLibrary) {
   "use strict";
 
-  if(assetLibrary.checkAssetsLoaded()===false) {
-    assetLibrary.loadAllAssets(function() {
-      sequencerManager.initMatrixData(); // populate matrix once loaded
-      initControls(); // build page
-    });
-  } else {
-    initControls(); // build page
+  // The onloaded flag for NexusUI is globally set in the index.html file. This test is made on the Sequencer page as well as the Fader page so that it can handle loading properly if the user directly jumps to this URL (i.e. operation of the program is not dependent on which page the user initially navigates to)
+
+  var NexusUITimeout = setTimeout(waitNexusUILoaded, 40);
+
+  function waitNexusUILoaded() {
+    if(isNexusUILoaded === true) {
+      if(assetLibrary.checkAssetsLoaded()===false) {
+        assetLibrary.loadAllAssets(function() {
+          sequencerManager.initMatrixData(); // populate matrix once loaded
+          initControls(); // build page
+        });
+      } else {
+        initControls(); // build page
+      }
+      clearTimeout(NexusUITimeout);
+    }
   }
 
   // ----------------------------------------------------
@@ -54,14 +63,17 @@ GENERAL:
  - research the best practices for Angular variable naming, and fix up the project
  - the CSS is better but still needs some cleanup
  - must save/restore variable states when switching pages
+ - each page also needs a secondary on/off button, which controls the on/off state on the *other* page (thus minimizing page flipping when time is short)
 
 FADER:
  - disable the manual fader when the automater is running
  - enable the Invert and Reverse buttons
 
 SEQUENCER:
- - add a clip transition-velocity slider
+ - add a clip transition-velocity slider that modifies transition velocity for all layers at once
+ - the advancing tempo bar should auto re-sync all 3 matrices at the start of each measure
 
 */
+
 
 }]);

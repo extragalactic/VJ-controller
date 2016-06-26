@@ -1,6 +1,6 @@
 
-var VJ_SERVER_IP = "192.168.1.72";
-var VJ_SERVER_PORT = 3300;
+var VJ_SERVER_IP = "192.168.0.101";
+var VJ_SERVER_PORT = 3400;
 
 (function() {
 
@@ -9,6 +9,6 @@ var VJ_SERVER_PORT = 3300;
    if (typeof module !== 'undefined' && typeof module.exports !== 'undefined')
       module.exports = settings;
    else {
-      window.sigmaSketcherSettings = settings;
+      window.VJControllerSettings = settings;
    }
 })();

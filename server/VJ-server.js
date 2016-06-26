@@ -17,7 +17,6 @@ var osc = require('node-osc');
 
 // init application vars
 var userList = [];
-var drawHistory = [];
 var oscServer, oscClient;
 
 // set root folder for Express web server

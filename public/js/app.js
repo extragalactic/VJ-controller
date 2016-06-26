@@ -13,7 +13,16 @@ var myApp = angular.module('myApp', [
   'ngColorPicker'
 ])
 // run initialization procedures
-.run(['socket', function(socket) {
+.run(['$window', 'socket', 'colorLibrary', function($window, socket, colorLibrary) {
+
+  // setup NexusUI colors
+  var color = colorLibrary.getColor; // shortcut
+  $window.nx.colorize(color('first','light'));
+  $window.nx.colorize("border", color('grey','medium'));
+  $window.nx.colorize("fill", color('first','dark'));
+  $window.nx.colorize("black", "#ffffff");
+
+  // send initial login message to server
   socket.emit('login');
 }])
 // set application 'globals'
