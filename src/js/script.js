@@ -24468,7 +24468,7 @@ var myApp = angular.module('myApp', [
     controller: 'SequencerController'
   }).
   otherwise({
-    redirectTo: '/fader'
+    redirectTo: '/sequencer'
   });
 }]);
 
@@ -24519,16 +24519,16 @@ angular.module('myApp').controller('FaderController', ['$scope', '$window', '$ht
     console.log('init fader widgets');
 
     faderManager.createOnOffToggle();
-    faderManager.createMasterFader();
+    //faderManager.createMasterFader();
     faderManager.createMicroSliders();
     faderManager.createStylePresets();
     faderManager.createStyleModSliders();
     faderManager.createInvertReverseButtons();
     faderManager.createTempoButtons();
-    faderManager.createLayerOpacitySlider(4);
-    faderManager.createLayerOpacitySlider(3);
-    faderManager.createLayerOpacitySlider(2);
-    faderManager.createLayerOpacitySlider(1);
+    //faderManager.createLayerOpacitySlider(4);
+    //faderManager.createLayerOpacitySlider(3);
+    //faderManager.createLayerOpacitySlider(2);
+    //faderManager.createLayerOpacitySlider(1);
 
     // init the multislider with the first preset
     faderManager.initSliderPresetSelection(0);

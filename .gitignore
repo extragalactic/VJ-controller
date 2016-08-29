@@ -1,6 +1,7 @@
 node_modules/
+dist/
 .DS_Store
 .tmp
 .git
-sigma-sketcher.git
+vj-controller.git
 npm-debug.log

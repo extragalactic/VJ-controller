@@ -43,7 +43,7 @@ var myApp = angular.module('myApp', [
     controller: 'SequencerController'
   }).
   otherwise({
-    redirectTo: '/fader'
+    redirectTo: '/sequencer'
   });
 }]);
 
