@@ -32,7 +32,7 @@ var htmlSources = [
   'src/*.html'
 ];
 var scssSources = [
-  'src/scss/*.scss'
+  'src/scss/**/*.scss'
 ];
 // all of the dist folders for deleting
 var distFolders = [
@@ -160,6 +160,7 @@ gulp.task('copyJS', ['minify'], function() {
 // watch for file changes to JS or Sass
 gulp.task('watch', ['copyJS'], function() {
   gulp.watch(jsSources, ['jshint', 'js', 'minify', 'copyJS', 'cleanEnd']);
+  gulp.watch(htmlSources, ['copyViews']);  
   gulp.watch(scssSources, ['sass']);
 });
 

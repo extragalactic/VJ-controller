@@ -1,0 +1,15 @@
+#navigationBar {
+    li {
+        font-size: 0.7em;
+    }
+}
+
+.navbar-custom {
+    background: linear-gradient($backgroundColorLight, $backgroundColorDark);
+}
+
+.footer {
+    h4 {
+        color: $textColorDark;
+    }
+}

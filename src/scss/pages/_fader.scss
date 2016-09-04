@@ -1,0 +1,72 @@
+
+#topFaderControls {
+    clear: both;
+    float: left;
+    padding-bottom: 20px;
+}
+#presetMicrosliders {
+}
+.microsliders {
+    padding: 0px 3px;
+    width: 120px;
+    height: 40px;
+}
+#presetTabs {
+    float: right;
+}
+#nexBeatStyleTabs {
+    width: 900px;
+    height: 50px;
+}
+
+// ---------------
+#middleFaderControls {
+    clear: both;
+    float: left;
+    padding-bottom: 20px;
+    width: 960px;
+}
+#nexStyleModSliders {
+    width: 800px;
+    height: 200px;
+    padding-right: 20px;
+    float: left;
+}
+#nexInvertToggle, #nexReverseToggle {
+    width: 100px;
+    height: 70px;
+    margin-right: 40px;
+    margin-bottom: 10px;
+}
+
+// ---------------
+#bottomFaderControls {
+    padding-bottom: 20px;
+    clear: both;
+}
+#tempoTabs {
+}
+#nexTempoTabs {
+    width: 900px;
+    height: 50px;
+}
+
+// ---------------
+#baseFaderControls {
+    width: 600px;
+}
+#nexFaderToggle {
+    width: 180px;
+    height: 100px;
+    margin-right: 40px;
+}
+#nexFaderSlider {
+    width: 70px;
+    height: 100px;
+    margin-right: 40px;
+}
+#nexLayerSlider1, #nexLayerSlider2, #nexLayerSlider3, #nexLayerSlider4 {
+    width: 40px;
+    height: 100px;
+    margin-right: 10px;
+}

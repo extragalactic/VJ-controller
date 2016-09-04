@@ -1,0 +1,39 @@
+
+// Define site colours
+$primaryColorLight: #ba6fe8;
+$primaryColorMedium: #7d3ca3;
+$primaryColorDark: #3c1c4e;
+$complementaryColorLight: complement($primaryColorLight);
+$complementaryColorMedium: complement($primaryColorMedium);
+$complementaryColorDark: complement($primaryColorDark);
+$textColorLight: #ddd;
+$textColorDark: #777;
+$backgroundColorLight: #444;
+$backgroundColorMedium: #222;
+$backgroundColorDark: #111;
+
+// Load all SCSS files
+@import 'base/base';
+@import 'base/buttons';
+
+@import 'pages/fader';
+@import 'pages/sequencer';
+@import 'pages/header-footer';
+
+
+// ------------------------------------------------------------
+atom-text-editor {
+  &, &::shadow {
+    atom-text-editor-minimap {
+      display: none;
+    }
+  }
+
+  &.is-focused {
+    &, &::shadow {
+      atom-text-editor-minimap {
+        display: block;
+      }
+    }
+  }
+}
