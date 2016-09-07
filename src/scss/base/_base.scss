@@ -19,7 +19,8 @@ body {
     margin-right: auto;
 
     label {
-        font-size: 0.6em;
+        font-size: 0.8em;
+        float: center;
     }
     input {
         font-size: 0.6em;
@@ -40,14 +41,6 @@ body {
     }
 }
 
-hr {
-    display: block;
-    height: 1px;
-    border: 0;
-    border-top: 1px solid $textColorDark;
-    margin: 1em 0;
-    padding: 0;
-}
 h1 {
     color: white;
     font-family: 'Arimo', sans-serif;
@@ -74,6 +67,34 @@ h5 {
     font-size: 0.6em;
 }
 
+.main {
+    margin-top: -30px;
+    padding-right: 20px;
+    padding-left: 7px;
+}
+
+.mainTitle {
+    float: left;
+    font-size: 0.8em;
+    text-transform: uppercase;
+}
+
+.widgetLabel {
+    text-align: center;
+    h4 {
+        color: $textColorDark;
+        text-transform: uppercase;
+    }
+}
+.widgetLabelBottom {
+    @extend .widgetLabel;
+    margin-left: -90px;
+}
+.widgetLabelBottomFader {
+    @extend .widgetLabel;
+    text-align: left;
+}
+
 div {
     button {
         color: black;
@@ -85,14 +106,35 @@ div {
     }
 }
 
-.main {
-    margin-top: -30px;
-    padding-right: 20px;
-    padding-left: 7px;
+div.disclaimer {
+    padding-top: 20px;
+    padding-left: 40px;
+
+    h4 {
+        font-size: 0.8em;
+        color: $textColorDark;
+    }
+    ul {
+        li {
+            color: $textColorDark;
+            font-size: 0.7em;
+            margin: 5px;
+        }
+    }
 }
 
-.mainTitle {
-    float: left;
+select {
+    color: white;
+    background-color: $backgroundColorMedium;
+}
+
+hr {
+    display: block;
+    height: 1px;
+    border: 0;
+    border-top: 1px solid $textColorDark;
+    margin: 1em 0;
+    padding: 0;
 }
 
 .search {
@@ -103,26 +145,12 @@ div {
     }
 }
 
-select {
-    color: white;
-    background-color: $backgroundColorMedium;
-}
-
 .clearfix {
     overflow: auto;
 }
 
 .nav, .pagination, .carousel, .panel-title a {
     cursor: pointer;
-}
-
-.colorPicker {
-    float: left;
-    padding: 5px 8px;
-    margin: 13px;
-    border: solid $backgroundColorLight 2px;
-    border-radius: 6px;
-    background-color: white;
 }
 
 [ng\:cloak], [ng-cloak], [data-ng-cloak], [x-ng-cloak], .ng-cloak, .x-ng-cloak {

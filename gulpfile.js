@@ -25,11 +25,11 @@ var jsSources = [
   'src/js/services/assetLibrary.js',
   'src/js/services/colorLibrary.js',
   'src/js/services/socketFactory.js',
-  'src/js/modules/jquery-extend.js',
-  'src/lib/ng-color-picker/color-picker.js'
+  'src/js/modules/jquery-extend.js'
 ];
 var htmlSources = [
-  'src/*.html'
+  'src/*.html',
+  'src/partials/*.html'
 ];
 var scssSources = [
   'src/scss/**/*.scss'
@@ -160,7 +160,7 @@ gulp.task('copyJS', ['minify'], function() {
 // watch for file changes to JS or Sass
 gulp.task('watch', ['copyJS'], function() {
   gulp.watch(jsSources, ['jshint', 'js', 'minify', 'copyJS', 'cleanEnd']);
-  gulp.watch(htmlSources, ['copyViews']);  
+  gulp.watch(htmlSources, ['copyViews']);
   gulp.watch(scssSources, ['sass']);
 });
 

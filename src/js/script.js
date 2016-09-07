@@ -24600,10 +24600,10 @@ angular.module('myApp').controller('SequencerController', ['$scope', '$window', 
     sequencerManager.createBPMControl();
     sequencerManager.createBPMMultiplierTabs();
     sequencerManager.createResyncButton();
+
     sequencerManager.createBankSelectorTabs();
 
     sequencerManager.refreshMatrixView();
-
     sequencerManager.refreshHiddenWidgets();
   }
 
@@ -24655,8 +24655,8 @@ angular.module('myApp').factory('faderManager', ['$window', 'socket', 'appVars',
   var faderSpeedArray = [0.0001220, 0.0002441, 0.0007324, 0.001706, 0.003656, 0.0007556, 0.015356];
 
   var faderStylePresets = [
-    [0.0001, 0.0001, 1.0001, 1.0001, 0.0001, 0.0001, 1.0001, 1.0001, 0.0001],
     [0.0001, 0.2, 0.4, 0.7, 1.0001, 0.7, 0.4, 0.2, 0.0001],
+    [0.0001, 0.0001, 1.0001, 1.0001, 0.0001, 0.0001, 1.0001, 1.0001, 0.0001], 
     [0.0001, 0.25, 0.0001, 0.25, 0.75, 1.0001, 0.75, 1.0001, 0.0001],
     [0.5, 0.5, 1.0001, 0.5, 0.5, 0.5, 0.0001, 0.5, 0.5],
     [0.0001, 0.0001, 0.0001, 0.0001, 1.0001, 0.0001, 1.0001, 0.0001, 0.0001],
@@ -24938,7 +24938,7 @@ angular.module('myApp').factory('sequencerManager', ['$window', 'socket', 'appVa
   var widget; // resuable widget var
   var bSequencerActive = false;
   var matrixActiveToggles = [true, true, true];
-  var sequencerBPM = 180;
+  var sequencerBPM = 72; 
   var clipBankNum = [0,0,0]; // values: 0-2
   var tempoMultiplier = 1; // 1, 2, 4 etc.
 
@@ -25052,7 +25052,7 @@ angular.module('myApp').factory('sequencerManager', ['$window', 'socket', 'appVa
     // sequencer on/off toggle button
     createOnOffToggle: function () {
       var name = "nexSequencerToggle";
-      $window.nx.add("toggle", {name: name, parent:"rightControls"});
+      $window.nx.add("toggle", {name: name, parent:"OnOffToggle-widget"});
       widget = $window.nx.widgets[name];
       widget.colors = {accent: color('firstComp','light'), fill: color('offState','medium')};
       widget.init();
@@ -25071,7 +25071,7 @@ angular.module('myApp').factory('sequencerManager', ['$window', 'socket', 'appVa
     // BPM control widget
     createBPMControl: function () {
       var name = "nexSequencerBPM";
-      $window.nx.add("number", {name: name, parent:"rightControls"});
+      $window.nx.add("number", {name: name, parent:"BPMControl-widget"});
       widget = $window.nx.widgets[name];
       widget.min = 0;
       widget.max = 500;
@@ -25089,7 +25089,7 @@ angular.module('myApp').factory('sequencerManager', ['$window', 'socket', 'appVa
     // BPM multiplier tabs
     createBPMMultiplierTabs: function () {
       var name ="nexTempoMultiplierTabs";
-      $window.nx.add("tabs", {name: name, parent:"rightControls"});
+      $window.nx.add("tabs", {name: name, parent:"BPMMultiplierTabs-widget"});
       widget = $window.nx.widgets[name];
       widget.options = ["x1", "x2", "x4", "x8"];
       widget.init();
@@ -25106,7 +25106,7 @@ angular.module('myApp').factory('sequencerManager', ['$window', 'socket', 'appVa
     // re-sync sequencer button
     createResyncButton: function () {
       var name = "nexResyncButton";
-      $window.nx.add("multitouch", {name: name, parent:"rightControls"});
+      $window.nx.add("multitouch", {name: name, parent:"ResyncButton-widget"});
       widget = $window.nx.widgets[name];
       widget.colors = {accent: color('firstComp','light'), fill: color('firstComp','dark')};
       widget.init();
@@ -25153,7 +25153,7 @@ angular.module('myApp').factory('sequencerManager', ['$window', 'socket', 'appVa
     // create bank selector tabs
     createBankSelectorTabs: function () {
       var name = "nexBankSelectorTabs";
-      $window.nx.add("tabs", {name: name, parent:"bottomControls"});
+      $window.nx.add("tabs", {name: name, parent:"BankSelector-widget"});
       widget = $window.nx.widgets[name];
       widget.options = ["1", "2", "3", "4", "5", "6"];
       widget.init();
@@ -25389,63 +25389,6 @@ jQuery.fn.swap = function(b){
   t.parentNode.removeChild(t);
   return this;
 };
-
-angular.module('ngColorPicker', [])
-.provider('ngColorPickerConfig', function(){
-
-    var templateUrl = 'lib/ng-color-picker/color-picker.html';
-    var defaultColors =  [
-        '#7bd148',
-        '#5484ed',
-        '#46d6db',
-        '#7ae7bf',
-        '#51b749',
-        '#fbd75b',
-        '#ffb878',
-        '#ff887c',
-        '#dc2127',
-        '#dbadff',
-        '#000000',
-        '#e1e1e1'
-    ];
-    this.setTemplateUrl = function(url){
-        templateUrl = url;
-        return this;
-    };
-    this.setDefaultColors = function(colors){
-        defaultColors = colors;
-        return this;
-    };
-    this.$get = function(){
-        return {
-            templateUrl : templateUrl,
-            defaultColors: defaultColors
-        };
-    };
-})
-.directive('ngColorPicker', ['$rootScope','ngColorPickerConfig',function($rootScope, ngColorPickerConfig) {
-
-    return {
-        scope: {
-            selected: '=',
-            customizedColors: '=colors'
-        },
-        restrict: 'AE',
-        templateUrl: ngColorPickerConfig.templateUrl,
-        link: function (scope, element, attr) {
-            scope.colors = scope.customizedColors || ngColorPickerConfig.defaultColors;
-            scope.selected = scope.selected || scope.colors[0];
-
-            scope.pick = function (color) {
-                scope.selected = color;
-                // broadcast global message with new selected colour
-                $rootScope.$broadcast('newSelectedColour', scope.selected);
-            };
-
-        }
-    };
-
-}]);
 
 }).call(this,typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{"angular-ui-bootstrap":2,"jquery":4,"socket.io-client":5}]},{},[52])

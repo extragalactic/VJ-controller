@@ -12,7 +12,7 @@ angular.module('myApp').factory('sequencerManager', ['$window', 'socket', 'appVa
   var widget; // resuable widget var
   var bSequencerActive = false;
   var matrixActiveToggles = [true, true, true];
-  var sequencerBPM = 180;
+  var sequencerBPM = 72; 
   var clipBankNum = [0,0,0]; // values: 0-2
   var tempoMultiplier = 1; // 1, 2, 4 etc.
 
@@ -126,7 +126,7 @@ angular.module('myApp').factory('sequencerManager', ['$window', 'socket', 'appVa
     // sequencer on/off toggle button
     createOnOffToggle: function () {
       var name = "nexSequencerToggle";
-      $window.nx.add("toggle", {name: name, parent:"rightControls"});
+      $window.nx.add("toggle", {name: name, parent:"OnOffToggle-widget"});
       widget = $window.nx.widgets[name];
       widget.colors = {accent: color('firstComp','light'), fill: color('offState','medium')};
       widget.init();
@@ -145,7 +145,7 @@ angular.module('myApp').factory('sequencerManager', ['$window', 'socket', 'appVa
     // BPM control widget
     createBPMControl: function () {
       var name = "nexSequencerBPM";
-      $window.nx.add("number", {name: name, parent:"rightControls"});
+      $window.nx.add("number", {name: name, parent:"BPMControl-widget"});
       widget = $window.nx.widgets[name];
       widget.min = 0;
       widget.max = 500;
@@ -163,7 +163,7 @@ angular.module('myApp').factory('sequencerManager', ['$window', 'socket', 'appVa
     // BPM multiplier tabs
     createBPMMultiplierTabs: function () {
       var name ="nexTempoMultiplierTabs";
-      $window.nx.add("tabs", {name: name, parent:"rightControls"});
+      $window.nx.add("tabs", {name: name, parent:"BPMMultiplierTabs-widget"});
       widget = $window.nx.widgets[name];
       widget.options = ["x1", "x2", "x4", "x8"];
       widget.init();
@@ -180,7 +180,7 @@ angular.module('myApp').factory('sequencerManager', ['$window', 'socket', 'appVa
     // re-sync sequencer button
     createResyncButton: function () {
       var name = "nexResyncButton";
-      $window.nx.add("multitouch", {name: name, parent:"rightControls"});
+      $window.nx.add("multitouch", {name: name, parent:"ResyncButton-widget"});
       widget = $window.nx.widgets[name];
       widget.colors = {accent: color('firstComp','light'), fill: color('firstComp','dark')};
       widget.init();
@@ -227,7 +227,7 @@ angular.module('myApp').factory('sequencerManager', ['$window', 'socket', 'appVa
     // create bank selector tabs
     createBankSelectorTabs: function () {
       var name = "nexBankSelectorTabs";
-      $window.nx.add("tabs", {name: name, parent:"bottomControls"});
+      $window.nx.add("tabs", {name: name, parent:"BankSelector-widget"});
       widget = $window.nx.widgets[name];
       widget.options = ["1", "2", "3", "4", "5", "6"];
       widget.init();

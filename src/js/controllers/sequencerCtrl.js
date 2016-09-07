@@ -43,10 +43,10 @@ angular.module('myApp').controller('SequencerController', ['$scope', '$window', 
     sequencerManager.createBPMControl();
     sequencerManager.createBPMMultiplierTabs();
     sequencerManager.createResyncButton();
+
     sequencerManager.createBankSelectorTabs();
 
     sequencerManager.refreshMatrixView();
-
     sequencerManager.refreshHiddenWidgets();
   }
 
